@@ -1,0 +1,1 @@
+Folder ini bukan penyimpanan transaksi produksi. File upload diproses dalam memori, transaksi disimpan pada PostgreSQL Supabase, dan ekspor Excel dikirim langsung sebagai respons API. Jangan commit Excel bisnis atau kredensial.

@@ -1,0 +1,2 @@
+import {readFileSync} from 'node:fs';
+for(const file of JSON.parse(readFileSync('excel-profile.local.json','utf8'))){console.log(file.file);if(file.error){console.log(file.error);continue;}for(const sheet of file.sheets){const row=sheet.topRows.reduce((a,b)=>b.cells.filter(c=>typeof c.value==='string'&&!/^[-+]?\d+(\.\d+)?$/.test(c.value)).length>a.cells.filter(c=>typeof c.value==='string'&&!/^[-+]?\d+(\.\d+)?$/.test(c.value)).length?b:a,{cells:[]});console.log(JSON.stringify({sheet:sheet.name,headerRow:row.row,headers:row.cells.map(c=>c.value)}));}}

@@ -2,11 +2,17 @@
   "name": "mmart-promotion-dashboard",
   "version": "1.0.0",
   "private": true,
+  "workspaces": [
+    "frontend"
+  ],
   "type": "module",
   "scripts": {
-    "dev": "vite --host 0.0.0.0",
-    "build": "vite build",
-    "preview": "vite preview",
+    "dev": "npm --workspace frontend run dev",
+    "build": "npm --workspace frontend run build",
+    "build:preview": "npm --workspace frontend run build:preview",
+    "build:online": "npm run build",
+    "test:online": "node tests/frontend-browser.mjs",
+    "preview": "npm --workspace frontend run preview",
     "data:import": "node scripts/import-workbook.mjs"
   },
   "dependencies": {
@@ -19,6 +25,8 @@
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.5.0",
+    "playwright": "^1.64.0",
+    "prettier": "^3.9.10",
     "vite": "^7.0.0"
   }
 }
