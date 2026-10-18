@@ -8,6 +8,7 @@ from starlette.concurrency import run_in_threadpool
 from app.models.records import Sale, Expense, Filters
 from app.services.database import authenticated, database, all_records
 from app.services.finance import report
+from app.services.analysis import analyse
 from app.services.excel import export_excel
 
 router = APIRouter(prefix="/api")
@@ -39,11 +40,11 @@ def report_filters(
         )
 
 
-async def get_report(filters, token):
+async def get_report(filters, token, calculator=report):
     sales, expenses = await gather(
         all_records(token, "refraksi_sales"), all_records(token, "refraksi_expenses")
     )
-    return await run_in_threadpool(report, sales, expenses, filters)
+    return await run_in_threadpool(calculator, sales, expenses, filters)
 
 
 @router.get("/dashboard")
@@ -51,6 +52,13 @@ async def dashboard(
     filters: Filters = Depends(report_filters), token=Depends(authenticated)
 ):
     return await get_report(filters, token)
+
+
+@router.get("/analysis")
+async def analysis(
+    filters: Filters = Depends(report_filters), token=Depends(authenticated)
+):
+    return await get_report(filters, token, analyse)
 
 
 @router.get("/export")

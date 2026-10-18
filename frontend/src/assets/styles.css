@@ -45,3 +45,38 @@
     @apply text-sm leading-relaxed text-slate-500;
   }
 }
+
+/* Use the browser's visible, native file control: no overlay or synthetic click. */
+.excel-file-input {
+  display: block;
+  width: 100%;
+  min-height: 48px;
+  padding: 0 12px 0 0;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  background: white;
+  color: #475569;
+  font-size: 13px;
+  cursor: pointer;
+}
+.excel-file-input::file-selector-button {
+  min-height: 46px;
+  margin-right: 12px;
+  padding: 10px 16px;
+  border: 0;
+  border-right: 1px solid #cbd5e1;
+  background: #f1f5f9;
+  color: #10243d;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+.excel-file-input:hover:not(:disabled)::file-selector-button {
+  background: #ecfdf5;
+  color: #087d65;
+}
+.excel-file-input:disabled,
+.excel-file-input:disabled::file-selector-button {
+  cursor: wait;
+  opacity: 0.6;
+}

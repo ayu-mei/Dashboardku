@@ -13,7 +13,8 @@ Draft preview akun ini dilindungi login Netlify: akses tanpa sesi Netlify mendap
 1. Masuk ke Supabase dan buat project khusus Refraksi. Simpan password database secara pribadi.
 2. Buka SQL Editor. Jalankan `supabase/migrations/202610180001_refraksi.sql` **sekali** pada project baru. Jangan menjalankan ulang skrip dengan menghapus tabel yang berisi data.
 3. Jalankan `supabase/migrations/202610180002_dimensions.sql` untuk kolom kategori/lokasi opsional.
-4. Jalankan `supabase/tests/security_finance.sql` untuk menguji rumus dan isolasi akun. Skrip memakai transaksi dengan rollback; bila terjadi error, jalankan `ROLLBACK;` sebelum memperbaiki masalah. Pengujian ini wajib dilakukan pada database yang benar sebelum produksi; unit test lokal tidak membuktikan RLS di akun Anda.
+   Kemudian jalankan `supabase/migrations/202610180003_money_value_checks.sql` untuk menyelaraskan validasi nol di belakang desimal dengan backend. Pada database existing, periksa schema terlebih dahulu memakai `supabase/checks/schema_audit.sql`; panduan dan batas verifikasi tersedia di `supabase/README.md`.
+4. Pada project uji, jalankan `supabase/tests/security_finance.sql` dan `supabase/tests/money_precision.sql` untuk menguji rumus dan isolasi akun. Skrip memakai transaksi dengan rollback; bila terjadi error, jalankan `ROLLBACK;` sebelum memperbaiki masalah. Unit test lokal tidak membuktikan RLS di akun online Anda; gunakan audit metadata read-only untuk memeriksa konfigurasi project existing tanpa memasukkan fixture ke produksi.
 5. Pada Authentication, nonaktifkan **Allow new users to sign up** dan anonymous sign-ins. Buat akun email/password melalui menu Users → Add user; konfirmasi email akun sesuai kebijakan administrator. Tidak ada pendaftaran publik di aplikasi.
 6. Salin **Project URL** dan **publishable key**. Legacy `anon` key juga didukung frontend. Jangan memakai `service_role`, secret key, atau password database pada frontend.
 7. Set Site URL dan redirect URL ke domain Netlify produksi. Login saat ini memakai email/password langsung; reset password dilakukan administrator. Token hanya berada di memori browser: refresh halaman mengharuskan login ulang.
@@ -73,7 +74,7 @@ Netlify hanya menghosting frontend. Backend memerlukan layanan Python/Docker, mi
 4. Deploy dan periksa URL HTTPS backend, misalnya `https://refraksi-api-ANDA.onrender.com/health`.
 5. Jangan mengatur disk lokal sebagai database. Semua CRUD memakai Supabase REST dengan JWT pengguna, sehingga RLS tetap berlaku. Tidak ada service-role key di aplikasi ini.
 
-Pembatasan upload aplikasi: 15 MB file, 100 MB ukuran ZIP setelah ekstraksi, dan 20.000 baris per impor. Tambahkan rate limit pada gateway/hosting untuk trafik publik dan atur perlindungan/rate limits Supabase Auth. Untuk data besar, pindahkan agregasi/filter ke query SQL yang terindeks dan proses impor ke background job; versi ini memuat data pemilik dengan pagination API agar tidak terpotong batas 1.000 baris.
+Pembatasan upload aplikasi: 50 MB file, 100 MB ukuran ZIP setelah ekstraksi, dan 20.000 baris per impor. Tambahkan rate limit pada gateway/hosting untuk trafik publik dan atur perlindungan/rate limits Supabase Auth. Untuk data besar, pindahkan agregasi/filter ke query SQL yang terindeks dan proses impor ke background job; versi ini memuat data pemilik dengan pagination API agar tidak terpotong batas 1.000 baris.
 
 ## 4. Atur Netlify
 

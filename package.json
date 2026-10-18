@@ -11,9 +11,10 @@
     "build": "npm --workspace frontend run build",
     "build:preview": "npm --workspace frontend run build:preview",
     "build:online": "npm run build",
-    "test:online": "node tests/frontend-browser.mjs",
+    "test:online": "node scripts/check-browser.mjs",
     "preview": "npm --workspace frontend run preview",
-    "data:import": "node scripts/import-workbook.mjs"
+    "data:import": "node scripts/import-workbook.mjs",
+    "lint": "prettier --check frontend/src frontend/vite.config.js tests/workspace-browser.mjs scripts/check-browser.mjs"
   },
   "dependencies": {
     "lucide-react": "^0.468.0",

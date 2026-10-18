@@ -2,9 +2,12 @@ from datetime import datetime, date
 from decimal import Decimal
 from io import BytesIO
 from zipfile import ZipFile, BadZipFile
+from xml.etree.ElementTree import ParseError
+from openpyxl.utils.exceptions import InvalidFileException
 from uuid import uuid5, NAMESPACE_URL
 import hashlib
 import json
+import re
 import pandas as pd
 from openpyxl import load_workbook, Workbook
 from fastapi import HTTPException
@@ -18,7 +21,8 @@ def checked_workbook(content):
         with ZipFile(BytesIO(content)) as archive:
             if sum(info.file_size for info in archive.infolist()) > 100 * 1024 * 1024:
                 raise HTTPException(
-                    400, "Isi Excel terlalu besar setelah dibuka, maksimal 100 MB."
+                    400, "Workbook berisi terlalu banyak data setelah dibuka (maksimal 100 MB). "
+                    "Simpan hanya sheet yang diperlukan sebagai file Excel terpisah, lalu coba lagi."
                 )
             if any(
                 "vbaproject" in info.filename.lower() for info in archive.infolist()
@@ -27,36 +31,91 @@ def checked_workbook(content):
         return load_workbook(
             BytesIO(content), read_only=True, data_only=False, keep_links=False
         )
-    except (BadZipFile, KeyError, ValueError, OSError):
+    except (BadZipFile, KeyError, ValueError, OSError, ParseError, InvalidFileException):
         raise HTTPException(
             400, "File bukan Excel .xlsx yang valid atau file kosong/rusak."
         )
 
 
-def inspect_excel(content, sheet=None, header_row=1):
+# Only unambiguous unit-price/cost names are suggested. SALES_VALUE is a total.
+ALIASES = {
+    "date": {"date", "tanggal", "tanggal transaksi", "transaction date", "tanggal asli", "sales date", "tgl", "tgl transaksi"},
+    "product": {"product", "produk", "sku desc", "sku description", "product name", "nama produk", "nama barang", "nama item", "item desc"},
+    "quantity": {"quantity", "qty", "qty sales", "qty sold", "jumlah", "jumlah unit", "qty penjualan", "sales qty", "jumlah penjualan", "sum of qty sales", "sum of qty", "sum of quantity"},
+    "price": {"price", "unit price", "harga aktual", "harga jual aktual per unit", "harga satuan", "harga jual satuan", "harga jual per unit", "actual unit price"},
+    "unit_cost": {"unit cost", "hpp per unit", "hpp satuan", "cost"},
+    "customer": {"customer", "pelanggan", "nama pelanggan"},
+    "category": {"category", "kategori", "department"},
+    "location": {"location", "lokasi", "store name", "cabang"},
+}
+STRUCTURE_NAMES = set().union(*ALIASES.values()) | {
+    "store", "sku", "sales", "sales value", "store name", "cost ppn", "region", "area"
+}
+FIELD_LABELS = {
+    "date": "Tanggal transaksi", "product": "Produk", "quantity": "Jumlah unit",
+    "price": "Harga jual aktual per unit", "unit_cost": "HPP per unit",
+    "customer": "Pelanggan", "category": "Kategori", "location": "Cabang / lokasi",
+}
+
+
+def column_name(value):
+    return re.sub(r"[^a-z0-9]+", " ", str(value).lower()).strip()
+
+
+def detect_header(rows):
+    candidates = []
+    for index, row in enumerate(rows[:50]):
+        occupied = [i for i, value in enumerate(row) if value is not None and str(value).strip()]
+        texts = [i for i in occupied if isinstance(row[i], str) and not row[i].startswith("=")]
+        if len(texts) < 2 or len(texts) / max(len(occupied), 1) < .75:
+            continue
+        names = [column_name(row[i]) for i in texts]
+        if len(set(names)) < len(names) * .7:
+            continue
+        following = [r for r in rows[index + 1:index + 7] if any(v is not None for v in r)]
+        if not following:
+            continue
+        coverage = [sum(i < len(r) and r[i] is not None for i in occupied) / len(occupied) for r in following]
+        consistent = sum(value >= .6 for value in coverage) / len(coverage)
+        recognized = sum(name in STRUCTURE_NAMES for name in names)
+        typed = any(any(isinstance(v, (int, float, date, datetime)) for v in r) for r in following)
+        if consistent < .6 or (recognized < 2 and not (typed and len(texts) >= 3)):
+            continue
+        candidates.append((recognized * 3 + consistent * 2 + min(len(texts), 15) * .1, -index))
+    return -max(candidates)[1] + 1 if candidates else None
+
+
+def inspect_excel(content, sheet=None, header_row=None):
     wb = checked_workbook(content)
     try:
         if sheet and sheet not in wb.sheetnames:
             raise HTTPException(400, "Sheet tidak ditemukan.")
+        # Multiple sheets require an explicit choice; never combine sheets.
+        if not sheet and len(wb.sheetnames) > 1:
+            return {"sheets": wb.sheetnames, "sheet": "", "recognized": False, "columns": [], "sample": []}
         ws = wb[sheet or wb.sheetnames[0]]
-        rows = list(
-            ws.iter_rows(min_row=header_row, max_row=header_row + 5, values_only=True)
-        )
-        header = (
-            [str(v).strip() if v is not None else "" for v in rows[0]] if rows else []
-        )
-        columns = [
-            {"index": i, "name": value} for i, value in enumerate(header) if value
-        ]
+        initial = list(ws.iter_rows(max_row=60, values_only=True))
+        header_row = header_row or detect_header(initial)
+        if not header_row:
+            return {"sheets": wb.sheetnames, "sheet": ws.title, "recognized": False,
+                    "columns": [], "sample": [],
+                    "message": "Struktur data belum dapat dikenali. Pilih sheet lain atau periksa format file Excel."}
+        rows = list(ws.iter_rows(min_row=header_row, max_row=header_row + 10, values_only=True))
+        columns = [{"index": i, "name": str(value).strip()} for i, value in enumerate(rows[0])
+                   if value is not None and str(value).strip()]
+        mapping = {}
+        for field, aliases in ALIASES.items():
+            matches = [col["index"] for col in columns if column_name(col["name"]) in aliases]
+            if len(matches) == 1:
+                mapping[field] = matches[0]
+        from app.services.excel_reports import describe_report
+        report = describe_report(ws, header_row)
         return {
-            "sheets": wb.sheetnames,
-            "sheet": ws.title,
-            "header_row": header_row,
-            "columns": columns,
-            "sample": [
-                [str(v) if v is not None else "" for v in row] for row in rows[1:]
-            ],
-            "warning": "Pilih sheet detail, bukan subtotal/pivot. Tanggal, produk, jumlah, harga jual aktual per unit, dan HPP per unit wajib tersedia. SALES_VALUE adalah total, bukan harga satuan. COST dan COST+PPN tidak boleh dijumlahkan.",
+            "sheets": wb.sheetnames, "sheet": ws.title, "header_row": header_row,
+            "recognized": True, "columns": columns, "mapping": mapping,
+            "report": report,
+            "sample": [[str(v) if v is not None else "" for v in row] for row in rows[1:] if any(v is not None for v in row)],
+            "warning": "Pilih sheet detail, bukan subtotal/pivot. Tanggal, produk, jumlah, harga jual aktual per unit, dan HPP per unit wajib tersedia. SALES_VALUE adalah total, bukan harga satuan. Periksa basis pajak COST sebelum mengimpor.",
         }
     finally:
         wb.close()
@@ -72,10 +131,20 @@ def normalize_excel(content, sheet, header_row, mapping, owner="local"):
             "Pemetaan belum lengkap. Wajib: tanggal, produk, jumlah, harga jual aktual per unit, dan HPP satuan. Data agregat tanpa field ini belum dapat diimpor.",
         )
     indices = [value for value in mapping.values() if value is not None]
-    if any(not isinstance(i, int) or i < 0 for i in indices) or len(
-        set(indices)
-    ) != len(indices):
-        raise HTTPException(400, "Setiap field harus memakai satu kolom yang berbeda.")
+    if any(type(i) is not int or i < 0 for i in indices) or any(key not in FIELD_LABELS for key in mapping):
+        raise HTTPException(400, "Pilihan kolom tidak valid. Pilih kembali kolom dari daftar.")
+    uses = {}
+    for field, index in mapping.items():
+        if index is not None:
+            uses.setdefault(index, []).append(FIELD_LABELS[field])
+    conflicts = [" dan ".join(labels) for labels in uses.values() if len(labels) > 1]
+    if conflicts:
+        raise HTTPException(
+            400,
+            "Kolom Excel yang sama dipakai untuk: " + "; ".join(conflicts)
+            + ". Pilih kolom berbeda untuk setiap isian, atau kosongkan isian opsional. "
+              "Jika datanya tidak tersedia, gunakan sheet atau file yang lebih lengkap.",
+        )
     wb = checked_workbook(content)
     try:
         if sheet not in wb.sheetnames:

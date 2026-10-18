@@ -18,7 +18,7 @@ export default function App() {
   }
   return loggedIn ? (
     <DashboardLayout page={page} onPage={setPage} onLogout={logout}>
-      <DashboardPage page={page} />
+      <DashboardPage page={page} onPage={setPage} />
     </DashboardLayout>
   ) : (
     <LoginPage onLogin={() => setLoggedIn(true)} />

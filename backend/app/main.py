@@ -26,7 +26,7 @@ async def security_headers(request: Request, call_next):
             if int(length) > settings().max_upload_bytes + 1024 * 1024:
                 return JSONResponse(
                     status_code=413,
-                    content={"detail": "File terlalu besar, maksimal 15 MB."},
+                    content={"detail": f"File terlalu besar, maksimal {settings().max_upload_bytes // (1024 * 1024)} MB."},
                 )
         except ValueError:
             return JSONResponse(

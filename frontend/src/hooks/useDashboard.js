@@ -10,7 +10,10 @@ export const defaultFilters = () => ({
   category: "",
   location: "",
 });
-export function useDashboard() {
+export function useDashboard(
+  endpoint = "/api/dashboard",
+  activePage = "dashboard",
+) {
   const [filters, setFilters] = useState(defaultFilters),
     [data, setData] = useState(null),
     [error, setError] = useState(""),
@@ -22,9 +25,9 @@ export function useDashboard() {
     setLoading(true);
     setError("");
     setData(null);
-    api("/api/dashboard?" + query, { signal: controller.signal })
+    api(endpoint + "?" + query, { signal: controller.signal })
       .then((result) => {
-        if (!controller.signal.aborted) setData(result);
+        if (!controller.signal.aborted) setData({ endpoint, result });
       })
       .catch((err) => {
         if (!controller.signal.aborted) setError(err.message);
@@ -33,12 +36,12 @@ export function useDashboard() {
         if (!controller.signal.aborted) setLoading(false);
       });
     return () => controller.abort();
-  }, [query, version]);
+  }, [query, version, endpoint, activePage]);
   const reload = useCallback(() => setVersion((value) => value + 1), []);
   return {
     filters,
     setFilters,
-    data,
+    data: data?.endpoint === endpoint ? data.result : null,
     error,
     loading,
     reload,

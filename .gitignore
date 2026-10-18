@@ -14,5 +14,6 @@ excel-profile.local.json
 .npm-cache/
 .test-build/
 test-artifacts/
+.playwright-mcp/
 *.xlsx
 .pytest_cache/

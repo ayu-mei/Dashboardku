@@ -7,7 +7,6 @@ import {
   X,
   LogOut,
   ShieldCheck,
-  Glasses,
 } from "lucide-react";
 const links = [
   ["dashboard", "Dashboard", LayoutDashboard],
@@ -30,7 +29,6 @@ export default function DashboardLayout({ page, onPage, onLogout, children }) {
       >
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Glasses size={29} />
             <div className="text-xl font-bold tracking-widest">
               REFRAKSI
               <small className="mt-1 block text-[9px] font-normal tracking-[.2em] text-slate-400">

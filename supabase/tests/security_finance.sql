@@ -1,4 +1,5 @@
--- Run in SQL Editor after migration. Test fixtures are rolled back, even on errors.
+-- Run in a test project after migrations. Fixtures are rolled back at the end.
+-- If execution stops on an error, issue ROLLBACK before continuing.
 begin;
 insert into auth.users(id, email) values
  ('11111111-1111-4111-8111-111111111111', 'refraksi-test-a@example.invalid'),
