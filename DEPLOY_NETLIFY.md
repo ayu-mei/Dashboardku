@@ -74,7 +74,7 @@ Netlify hanya menghosting frontend. Backend memerlukan layanan Python/Docker, mi
 4. Deploy dan periksa URL HTTPS backend, misalnya `https://refraksi-api-ANDA.onrender.com/health`.
 5. Jangan mengatur disk lokal sebagai database. Semua CRUD memakai Supabase REST dengan JWT pengguna, sehingga RLS tetap berlaku. Tidak ada service-role key di aplikasi ini.
 
-Pembatasan upload aplikasi: 50 MB file, 100 MB ukuran ZIP setelah ekstraksi, dan 20.000 baris per impor. Tambahkan rate limit pada gateway/hosting untuk trafik publik dan atur perlindungan/rate limits Supabase Auth. Untuk data besar, pindahkan agregasi/filter ke query SQL yang terindeks dan proses impor ke background job; versi ini memuat data pemilik dengan pagination API agar tidak terpotong batas 1.000 baris.
+Pembatasan upload aplikasi: 50 MB file, 256 MB ukuran ZIP setelah ekstraksi, dan 20.000 baris per impor. Batas setelah ekstraksi dapat diatur melalui `MAX_WORKBOOK_BYTES` pada backend (default `268435456` byte); restart backend setelah mengubah konfigurasi. Tambahkan rate limit pada gateway/hosting untuk trafik publik dan atur perlindungan/rate limits Supabase Auth. Untuk data besar, pindahkan agregasi/filter ke query SQL yang terindeks dan proses impor ke background job; versi ini memuat data pemilik dengan pagination API agar tidak terpotong batas 1.000 baris.
 
 ## 4. Atur Netlify
 

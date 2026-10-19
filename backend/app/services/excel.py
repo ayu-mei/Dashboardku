@@ -12,6 +12,7 @@ import pandas as pd
 from openpyxl import load_workbook, Workbook
 from fastapi import HTTPException
 from app.models.records import Sale
+from app.utils.config import settings
 
 MAX_ROWS = 20000
 
@@ -19,9 +20,12 @@ MAX_ROWS = 20000
 def checked_workbook(content):
     try:
         with ZipFile(BytesIO(content)) as archive:
-            if sum(info.file_size for info in archive.infolist()) > 100 * 1024 * 1024:
+            # XLSX is compressed: legitimate multi-sheet workbooks can expand
+            # well beyond the upload size. Keep a separate, bounded limit.
+            limit = settings().max_workbook_bytes
+            if sum(info.file_size for info in archive.infolist()) > limit:
                 raise HTTPException(
-                    400, "Workbook berisi terlalu banyak data setelah dibuka (maksimal 100 MB). "
+                    400, f"Workbook berisi terlalu banyak data setelah dibuka (maksimal {limit // (1024 * 1024)} MB). "
                     "Simpan hanya sheet yang diperlukan sebagai file Excel terpisah, lalu coba lagi."
                 )
             if any(
