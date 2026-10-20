@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import StreamingResponse
 from pydantic import ValidationError
 from starlette.concurrency import run_in_threadpool
-from app.models.records import Sale, Expense, Filters
+from app.models.records import Sale, Expense, Filters, BulkDelete
 from app.services.database import authenticated, database, all_records
 from app.services.finance import report
 from app.services.analysis import analyse
@@ -129,3 +129,23 @@ async def delete_record(kind: str, record_id: UUID, token=Depends(authenticated)
     if not rows:
         raise HTTPException(404, "Data tidak ditemukan atau tidak diizinkan.")
     return {"ok": True}
+
+
+@router.post("/{kind}/bulk-delete")
+async def delete_records(kind: str, selection: BulkDelete, token=Depends(authenticated)):
+    if kind not in ("sales", "expenses"):
+        raise HTTPException(404, "Rute tidak ditemukan.")
+    ids = list(dict.fromkeys(str(value) for value in selection.ids))
+    deleted = 0
+    for offset in range(0, len(ids), 100):
+        try:
+            # Small URL batches; caller's token and existing RLS enforce ownership.
+            rows = await database(token, "DELETE", "refraksi_" + kind,
+                params={"id": "in.(" + ",".join(ids[offset:offset + 100]) + ")", "select": "id"})
+            deleted += len(rows)
+        except HTTPException:
+            if not deleted:
+                raise
+            return {"deleted": deleted, "requested": len(ids), "complete": False,
+                    "message": "Penghapusan terhenti. Sebagian data sudah dihapus; muat ulang dan periksa data yang tersisa sebelum mencoba lagi."}
+    return {"deleted": deleted, "requested": len(ids), "complete": True}

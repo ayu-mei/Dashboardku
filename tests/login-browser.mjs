@@ -38,9 +38,10 @@ try {
     preview: { host: "127.0.0.1", port: 4177, strictPort: true },
   });
   browser = await chromium.launch({ channel: "chrome", headless: true });
-  const page = await browser.newPage({
+  const context = await browser.newContext({
     viewport: { width: 1440, height: 900 },
   });
+  const page = await context.newPage();
   page.setDefaultTimeout(15000);
   page.on("pageerror", (error) => errors.push(error.message));
   page.on("console", (message) => {
@@ -50,72 +51,82 @@ try {
     )
       errors.push(message.text());
   });
-  await page.route("https://login-test.supabase.co/**", async (route) => {
-    if (route.request().method() === "OPTIONS")
-      return route.fulfill({
-        status: 204,
+  await page
+    .context()
+    .route("https://login-test.supabase.co/**", async (route) => {
+      if (route.request().method() === "OPTIONS")
+        return route.fulfill({
+          status: 204,
+          headers: {
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Headers":
+              "apikey, Content-Type, Authorization",
+            "Access-Control-Allow-Methods": "POST, OPTIONS",
+          },
+        });
+      if (route.request().url().includes("/logout")) {
+        logoutCalls++;
+        return route.fulfill({
+          json: {},
+          headers: { "Access-Control-Allow-Origin": "*" },
+        });
+      }
+      calls++;
+      payloads.push(route.request().postDataJSON());
+      const response =
+        reply === "pending"
+          ? await new Promise((done) => {
+              release = done;
+            })
+          : reply;
+      await route.fulfill({
+        status:
+          response === "success"
+            ? 200
+            : response === "server-error"
+              ? 500
+              : 401,
+        headers: { "Access-Control-Allow-Origin": "*" },
+        json:
+          response === "success"
+            ? {
+                access_token: `eyJhbGciOiJIUzI1NiJ9.${Buffer.from(JSON.stringify({ sub: "test-user", exp: Math.floor(Date.now() / 1000) + 7200 })).toString("base64url")}.test`,
+                user: { id: "test-user", email: "design-test@example.invalid" },
+                refresh_token: "test-refresh",
+                expires_in: 7200,
+              }
+            : { msg: "Internal PostgrestError secret_code PRIVATE_DATABASE" },
+      });
+    });
+  await page
+    .context()
+    .route("https://api-login-test.onrender.com/**", (route) =>
+      route.fulfill({
         headers: {
           "Access-Control-Allow-Origin": "*",
-          "Access-Control-Allow-Headers": "apikey, Content-Type, Authorization",
-          "Access-Control-Allow-Methods": "POST, OPTIONS",
+          "Access-Control-Allow-Headers": "Content-Type, Authorization",
+          "Access-Control-Allow-Methods": "GET, OPTIONS",
         },
-      });
-    if (route.request().url().includes("/logout")) {
-      logoutCalls++;
-      return route.fulfill({
-        json: {},
-        headers: { "Access-Control-Allow-Origin": "*" },
-      });
-    }
-    calls++;
-    payloads.push(route.request().postDataJSON());
-    const response =
-      reply === "pending"
-        ? await new Promise((done) => {
-            release = done;
-          })
-        : reply;
-    await route.fulfill({
-      status:
-        response === "success" ? 200 : response === "server-error" ? 500 : 401,
-      headers: { "Access-Control-Allow-Origin": "*" },
-      json:
-        response === "success"
-          ? {
-              access_token: "login-test-token",
-              refresh_token: "test-refresh",
-              expires_in: 3600,
-            }
-          : { msg: "Internal PostgrestError secret_code PRIVATE_DATABASE" },
-    });
-  });
-  await page.route("https://api-login-test.onrender.com/**", (route) =>
-    route.fulfill({
-      headers: {
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Headers": "Content-Type, Authorization",
-        "Access-Control-Allow-Methods": "GET, OPTIONS",
-      },
-      json: {
-        sales: [],
-        expenses: [],
-        metrics: {
-          sales: "0",
-          hpp: "0",
-          gross: "0",
-          operational: "0",
-          net: "0",
-          gross_margin: null,
-          net_margin: null,
+        json: {
+          sales: [],
+          expenses: [],
+          metrics: {
+            sales: "0",
+            hpp: "0",
+            gross: "0",
+            operational: "0",
+            net: "0",
+            gross_margin: null,
+            net_margin: null,
+          },
+          options: { product: [], category: [], location: [] },
+          years: [],
+          timeline: [],
+          products: [],
+          note: "Akun uji terisolasi.",
         },
-        options: { product: [], category: [], location: [] },
-        years: [],
-        timeline: [],
-        products: [],
-        note: "Akun uji terisolasi.",
-      },
-    }),
-  );
+      }),
+    );
   await page.goto("http://127.0.0.1:4177");
   const email = page.getByLabel("Email", { exact: true }),
     password = page.getByLabel("Password", { exact: true });
@@ -240,6 +251,7 @@ try {
   assert.deepEqual(payloads[0], {
     email: "design-test@example.invalid",
     password: "ui-test-password",
+    gotrue_meta_security: {},
   });
   await page.screenshot({
     path: "test-artifacts/login/loading.png",
@@ -275,22 +287,73 @@ try {
   await page
     .getByRole("heading", { name: "Dashboard Penjualan", exact: true })
     .waitFor();
-  // Existing source keeps the session in memory: document, don't change, this behavior.
+  assert.equal(
+    await page.getByText("AKSES WORKSPACE", { exact: true }).count(),
+    0,
+  );
+  await page.reload();
+  await page
+    .getByRole("heading", { name: "Dashboard Penjualan", exact: true })
+    .waitFor();
+  // Force an expired persisted access token: SDK must refresh and keep login.
+  const beforeRefresh = calls;
+  await page.evaluate(() => {
+    const key = Object.keys(localStorage).find(
+      (key) => key.startsWith("refraksi-auth-") && !key.endsWith("-activity"),
+    );
+    const value = JSON.parse(localStorage.getItem(key));
+    value.expires_at = Math.floor(Date.now() / 1000) - 10;
+    localStorage.setItem(key, JSON.stringify(value));
+  });
+  await page.reload();
+  await page
+    .getByRole("heading", { name: "Dashboard Penjualan", exact: true })
+    .waitFor();
+  assert.ok(calls > beforeRefresh, "Expired token must be refreshed");
+  await page.route("https://api-login-test.onrender.com/**", (route) =>
+    route.abort(),
+  );
+  await page
+    .getByRole("button", { name: "Muat ulang data", exact: true })
+    .click();
+  await page.getByRole("alert").waitFor();
+  assert.ok(
+    await page
+      .getByRole("heading", { name: "Dashboard Penjualan", exact: true })
+      .isVisible(),
+  );
+  await page.unroute("https://api-login-test.onrender.com/**");
+  const second = await page.context().newPage();
+  await second.goto(page.url());
+  await second
+    .getByRole("heading", { name: "Dashboard Penjualan", exact: true })
+    .waitFor();
+  await second.getByRole("button", { name: "Keluar", exact: true }).click();
+  await page
+    .getByRole("heading", { name: "Selamat datang", exact: true })
+    .waitFor();
+  await second.close();
+  assert.equal(logoutCalls, 1);
+  await email.fill("design-test@example.invalid");
+  await password.fill("ui-test-password");
+  await password.press("Enter");
+  await page
+    .getByRole("heading", { name: "Dashboard Penjualan", exact: true })
+    .waitFor();
+  await page.clock.install();
+  await page.clock.fastForward(28 * 60 * 1000 + 1000);
+  await page.getByRole("alertdialog").waitFor();
+  await page.getByRole("button", { name: "Tetap masuk", exact: true }).click();
+  assert.equal(await page.getByRole("alertdialog").count(), 0);
+  await page.clock.fastForward(30 * 60 * 1000 + 1000);
+  await page
+    .getByRole("heading", { name: "Selamat datang", exact: true })
+    .waitFor();
+  await page.getByText(/Anda keluar otomatis karena tidak aktif/).waitFor();
   await page.reload();
   await page
     .getByRole("heading", { name: "Selamat datang", exact: true })
     .waitFor();
-  console.log(
-    "EXISTING BEHAVIOR: full reload returns to login; auth/session implementation was preserved.",
-  );
-  await email.fill("design-test@example.invalid");
-  await password.fill("ui-test-password");
-  await password.press("Enter");
-  await page.getByRole("button", { name: "Keluar", exact: true }).click();
-  await page
-    .getByRole("heading", { name: "Selamat datang", exact: true })
-    .waitFor();
-  assert.equal(logoutCalls, 1);
   await page.emulateMedia({ reducedMotion: "reduce" });
   assert.equal(
     await page
@@ -306,7 +369,7 @@ try {
   );
   assert.deepEqual(errors, []);
   console.log(
-    "PASS: desktop/laptop/tablet/mobile 360–1440px, required labels/autocomplete, keyboard/focus/Enter, show/hide password, loading/double-submit guard, sanitized errors, existing successful-login transition, refresh behavior, existing logout, reduced motion, key text contrast >=4.5, no JavaScript errors. Auth responses mocked; production accounts untouched.",
+    "PASS: desktop/laptop/tablet/mobile 360–1440px, required labels/autocomplete, keyboard/focus/Enter, show/hide password, loading/double-submit guard, sanitized errors, successful login, persisted refresh, automatic token renewal, network failure, cross-tab logout, idle warning/extension/expiry, reduced motion, key text contrast >=4.5, no JavaScript errors. Auth responses mocked; production accounts untouched.",
   );
 } finally {
   release?.("invalid");

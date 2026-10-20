@@ -1,4 +1,4 @@
-import { accessToken } from "./auth";
+import { accessToken, signOut } from "./auth";
 const base = import.meta.env.VITE_API_BASE_URL?.replace(/\/$/, "");
 export async function api(
   path,
@@ -21,6 +21,7 @@ export async function api(
     );
   });
   if (!response.ok) {
+    if (response.status === 401) void signOut().catch(() => {});
     const value = await response.json().catch(() => ({}));
     throw new Error(
       typeof value.detail === "string"

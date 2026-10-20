@@ -60,6 +60,37 @@ export default function DashboardPage({ page, onPage }) {
       setBusy(false);
     }
   }
+  async function removeSelected(kind, ids) {
+    const label =
+      kind === "sales" ? "transaksi penjualan" : "catatan biaya operasional";
+    if (
+      !confirm(
+        `Hapus ${ids.length} ${label} yang dipilih? Pilihan mencakup semua halaman sesuai filter dan pencarian tabel. Tindakan ini tidak dapat dibatalkan.`,
+      )
+    )
+      return;
+    setBusy(true);
+    setError("");
+    setNotice("");
+    try {
+      const result = await api(`/api/${kind}/bulk-delete`, {
+        method: "POST",
+        body: { ids },
+      });
+      if (!result.complete)
+        setError(`${result.deleted} data telah dihapus. ${result.message}`);
+      else
+        setNotice(
+          `${result.deleted} ${label} berhasil dihapus.${result.deleted < result.requested ? " Sebagian data sudah tidak tersedia atau tidak dapat diakses." : ""}`,
+        );
+      model.reload();
+    } catch (err) {
+      setError(err.message);
+      model.reload();
+    } finally {
+      setBusy(false);
+    }
+  }
   const title = {
     dashboard: "Dashboard Penjualan",
     data: "Data Penjualan",
@@ -191,6 +222,7 @@ export default function DashboardPage({ page, onPage }) {
                   kind="sales"
                   onEdit={setEditing}
                   onDelete={remove}
+                  onBulkDelete={removeSelected}
                   busy={busy}
                 />
               </section>
@@ -216,6 +248,7 @@ export default function DashboardPage({ page, onPage }) {
                   kind="expenses"
                   onEdit={setEditing}
                   onDelete={remove}
+                  onBulkDelete={removeSelected}
                   busy={busy}
                 />
               </section>

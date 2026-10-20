@@ -50,3 +50,17 @@ Workbook asli tidak diubah dan tidak dimigrasikan diam-diam. Import Excel dibuka
 Laporan Double Date memiliki alur khusus: pilih sheet detail, pastikan **Tahun laporan 2026**, lalu klik **Periksa Data**. Jumlah, penjualan aktual, dan dasar HPP dari rumus margin dibaca otomatis. Pada sumber yang diperiksa, **DOUBLE DATE MARET** dapat diimpor sebagai 47 baris rekap tanggal 3 Maret 2026 dengan total penjualan Rp11.541.000 dan HPP Rp4.953.394,98. Baris nol/total ditampilkan sebagai pengecualian sebelum konfirmasi. Sheet yang memerlukan presisi harga/HPP di luar dua desimal atau dasar HPP yang belum jelas dapat dilihat preview-nya, tetapi ditahan seluruhnya dari penyimpanan. Tidak ada pembulatan diam-diam atau perubahan schema database. Rincian ada di [pemeriksaan sumber](EXCEL_REVIEW.md).
 
 Sumber project promosi sebelumnya di `src/`, workbook root, serta versi Flask lokal (`app.py`, `templates/`, `static/`) dipertahankan sebagai sumber lama dan **tidak digunakan oleh build Netlify aktif**. Panduan promosi asli disimpan di `LEGACY_PROMOTION_README.md`; panduan Flask lama ada di `PANDUAN_REFRAKSI.md`. Jangan menjalankan Flask untuk frontend React.
+
+### Sesi login
+
+Frontend memakai SDK resmi Supabase untuk menyimpan sesi browser, memulihkan login saat refresh/tab baru, dan memperbarui token. Logout menghapus sesi browser dan mencoba mencabut sesi perangkat ini di Supabase; tab lain pada browser yang sama ikut keluar. Kegagalan jaringan tidak dianggap sebagai logout; respons API 401 mengakhiri sesi.
+
+Batas tidak aktif di antarmuka adalah 30 menit, dengan peringatan pada menit ke-28 dan tombol **Tetap masuk**. Aktivitas klik, ketik, scroll, atau sentuh dibagikan antar tab melalui penyimpanan browser. Waktu tetap diperiksa setelah tab kembali aktif atau browser dibuka ulang. Batas ini merupakan aturan antarmuka; pengaturan batas sesi/inaktivitas yang wajib ditegakkan server harus dikonfigurasi terpisah pada layanan autentikasi. Formulir yang belum disimpan belum dipulihkan setelah logout.
+
+Uji sesi dan login dengan akun mock: `node tests/login-browser.mjs`.
+
+### Hapus banyak data
+
+Pada Data Penjualan, centang baris atau gunakan **Pilih semua hasil filter**, lalu **Hapus terpilih**. Pilihan mencakup semua halaman tabel sesuai filter laporan dan pencarian tabel, dengan transaksi dan biaya dipisahkan. Perubahan filter/pencarian membatalkan pilihan. Konfirmasi menampilkan jumlah dan jenis data; penghapusan tidak dapat dibatalkan. Untuk menghapus seluruh data suatu jenis, kosongkan filter laporan dan pencarian terlebih dahulu.
+
+Backend menerima ID eksplisit melalui `POST /api/sales/bulk-delete` atau `POST /api/expenses/bulk-delete`, memakai token pengguna dan RLS yang sama. Penghapusan diproses per 100 ID untuk membatasi panjang URL database. Jika proses terhenti, respons melaporkan jumlah yang sudah dihapus dan tabel dimuat ulang; keseluruhan operasi tidak bersifat atomik antar kelompok. Uji browser memakai data mock: `node tests/bulk-delete-browser.mjs`.

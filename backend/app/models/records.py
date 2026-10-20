@@ -1,4 +1,5 @@
 from datetime import date
+from uuid import UUID
 from decimal import Decimal
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
@@ -50,3 +51,8 @@ class Filters(BaseModel):
         if value and info.data.get("start") and value < info.data["start"]:
             raise ValueError("Tanggal akhir harus setelah tanggal awal.")
         return value
+
+
+class BulkDelete(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    ids: list[UUID] = Field(min_length=1)

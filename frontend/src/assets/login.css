@@ -760,3 +760,7 @@
     scroll-behavior: auto !important;
   }
 }
+
+.login-input-wrap > input[name="password"] {
+  padding-left: 15px;
+}

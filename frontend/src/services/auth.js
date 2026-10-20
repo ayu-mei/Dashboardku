@@ -1,7 +1,6 @@
+import { createClient } from "@supabase/supabase-js";
 const url = import.meta.env.VITE_SUPABASE_URL?.replace(/\/$/, "");
 const key = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
-let session = null,
-  refreshing = null;
 function publicKey() {
   if (key?.startsWith("sb_publishable_")) return true;
   try {
@@ -17,63 +16,72 @@ export const configured = () =>
   /^https:\/\/[a-z0-9-]+\.supabase\.co$/.test(url || "") &&
   publicKey() &&
   !!import.meta.env.VITE_API_BASE_URL;
-async function authRequest(path, body, token) {
-  if (!configured())
-    throw new Error(
-      "Konfigurasi online belum lengkap. Administrator perlu mengatur Supabase dan URL API, lalu build ulang.",
-    );
-  const response = await fetch(url + "/auth/v1/" + path, {
-    method: "POST",
-    headers: {
-      apikey: key,
-      "Content-Type": "application/json",
-      ...(token ? { Authorization: "Bearer " + token } : {}),
-    },
-    body: body ? JSON.stringify(body) : undefined,
-  });
-  const data = await response.json().catch(() => ({}));
-  if (!response.ok)
-    throw new Error(
-      response.status === 400 || response.status === 401
-        ? "Email atau password tidak valid, atau sesi telah berakhir."
-        : data.msg || "Layanan login tidak dapat dihubungi.",
-    );
-  return data;
+
+export const SESSION_KEY = `refraksi-auth-${url}`;
+export const ACTIVITY_KEY = `${SESSION_KEY}-activity`;
+export const IDLE_LIMIT = 30 * 60 * 1000;
+export const IDLE_WARNING = 2 * 60 * 1000;
+const client = configured()
+  ? createClient(url, key, {
+      auth: {
+        persistSession: true,
+        autoRefreshToken: true,
+        detectSessionInUrl: false,
+        storageKey: SESSION_KEY,
+      },
+    })
+  : null;
+export function observeSession(callback) {
+  if (!client) {
+    callback(null);
+    return () => {};
+  }
+  const { data } = client.auth.onAuthStateChange((_event, session) =>
+    callback(session),
+  );
+  return () => data.subscription.unsubscribe();
 }
 export async function signIn(email, password) {
-  const value = await authRequest("token?grant_type=password", {
-    email,
-    password,
-  });
-  session = { ...value, expires_at: Date.now() + value.expires_in * 1000 };
+  if (!client) throw new Error("Layanan masuk belum siap.");
+  const { error } = await client.auth.signInWithPassword({ email, password });
+  if (error)
+    throw new Error(
+      error.status === 400 || error.status === 401
+        ? "Email atau password tidak valid."
+        : "Layanan login tidak dapat dihubungi.",
+    );
+  localStorage.setItem(ACTIVITY_KEY, String(Date.now()));
 }
 export async function accessToken() {
-  if (!session) throw new Error("Silakan masuk terlebih dahulu.");
-  if (session.expires_at < Date.now() + 60000) {
-    refreshing ??= authRequest("token?grant_type=refresh_token", {
-      refresh_token: session.refresh_token,
-    })
-      .then((value) => {
-        session = {
-          ...value,
-          expires_at: Date.now() + value.expires_in * 1000,
-        };
-      })
-      .catch((error) => {
-        session = null;
-        throw error;
-      })
-      .finally(() => {
-        refreshing = null;
-      });
-    await refreshing;
-  }
-  return session.access_token;
+  if (!client) throw new Error("Layanan masuk belum siap.");
+  const { data, error } = await client.auth.getSession();
+  if (error)
+    throw new Error(
+      "Sesi belum dapat diperiksa. Periksa koneksi dan coba lagi.",
+    );
+  if (!data.session) throw new Error("Silakan masuk terlebih dahulu.");
+  return data.session.access_token;
 }
 export async function signOut() {
+  // Capture the token before clearing storage so the server can revoke it too.
+  let token;
   try {
-    if (session) await authRequest("logout", null, session.access_token);
-  } finally {
-    session = null;
+    token = JSON.parse(localStorage.getItem(SESSION_KEY))?.access_token;
+  } catch {
+    /* Invalid local session. */
   }
+  // Clear the browser immediately, including when the auth service is offline.
+  localStorage.removeItem(SESSION_KEY);
+  localStorage.removeItem(ACTIVITY_KEY);
+  window.dispatchEvent(new Event("refraksi-signout"));
+  await Promise.allSettled([
+    client?.auth.signOut({ scope: "local" }),
+    token
+      ? fetch(`${url}/auth/v1/logout?scope=local`, {
+          method: "POST",
+          headers: { apikey: key, Authorization: `Bearer ${token}` },
+          signal: AbortSignal.timeout(8000),
+        })
+      : Promise.resolve(),
+  ]);
 }

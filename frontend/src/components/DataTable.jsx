@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState, useEffect, useRef } from "react";
 import {
   Search,
   ArrowUpDown,
@@ -9,11 +9,21 @@ import {
 } from "lucide-react";
 import { Empty } from "./Feedback";
 import { rupiah } from "../utils/format";
-export default function DataTable({ rows, kind, onEdit, onDelete, busy }) {
+export default function DataTable({
+  rows,
+  kind,
+  onEdit,
+  onDelete,
+  onBulkDelete,
+  busy,
+}) {
   const [search, setSearch] = useState(""),
     [sort, setSort] = useState({ key: "date", direction: -1 }),
     [page, setPage] = useState(1);
+  const [selected, setSelected] = useState(new Set());
+  const selectAll = useRef(null);
   useEffect(() => setPage(1), [search, rows, sort]);
+  useEffect(() => setSelected(new Set()), [rows, search]);
   const columns =
     kind === "sales"
       ? [
@@ -58,6 +68,20 @@ export default function DataTable({ rows, kind, onEdit, onDelete, busy }) {
   );
   const count = Math.max(1, Math.ceil(filtered.length / 10)),
     current = Math.min(page, count);
+  const selectedIds = filtered
+    .filter((row) => selected.has(row.id))
+    .map((row) => row.id);
+  const allSelected =
+    filtered.length > 0 && selectedIds.length === filtered.length;
+  useEffect(() => {
+    if (selectAll.current)
+      selectAll.current.indeterminate = selectedIds.length > 0 && !allSelected;
+  }, [selectedIds.length, allSelected]);
+  function toggleAll() {
+    setSelected(
+      allSelected ? new Set() : new Set(filtered.map((row) => row.id)),
+    );
+  }
   return (
     <>
       <div className="relative my-5 max-w-md">
@@ -71,6 +95,26 @@ export default function DataTable({ rows, kind, onEdit, onDelete, busy }) {
           onChange={(e) => setSearch(e.target.value)}
         />
       </div>
+      <div className="mb-4 flex flex-wrap items-center gap-3 text-sm">
+        <button
+          className="btn-secondary"
+          disabled={busy || !filtered.length}
+          onClick={toggleAll}
+        >
+          {allSelected ? "Batalkan pilihan" : "Pilih semua hasil filter"}
+        </button>
+        <span role="status">
+          {selectedIds.length} dari {filtered.length} baris dipilih (semua
+          halaman)
+        </span>
+        <button
+          className="btn-secondary !text-red-700"
+          disabled={busy || !selectedIds.length}
+          onClick={() => onBulkDelete(kind, selectedIds)}
+        >
+          <Trash2 size={15} /> Hapus terpilih ({selectedIds.length})
+        </button>
+      </div>
       <div
         className="overflow-x-auto rounded-xl border border-slate-100"
         tabIndex={0}
@@ -80,6 +124,16 @@ export default function DataTable({ rows, kind, onEdit, onDelete, busy }) {
         <table className="w-full min-w-[630px]">
           <thead>
             <tr>
+              <th>
+                <input
+                  ref={selectAll}
+                  type="checkbox"
+                  aria-label="Pilih semua hasil filter"
+                  checked={allSelected}
+                  disabled={busy || !filtered.length}
+                  onChange={toggleAll}
+                />
+              </th>
               {columns.map(([key, label]) => (
                 <th key={key}>
                   <button
@@ -103,6 +157,22 @@ export default function DataTable({ rows, kind, onEdit, onDelete, busy }) {
           <tbody>
             {filtered.slice((current - 1) * 10, current * 10).map((row) => (
               <tr key={row.id}>
+                <td>
+                  <input
+                    type="checkbox"
+                    aria-label={`Pilih ${kind === "sales" ? row.product : row.description} ${row.date}`}
+                    checked={selected.has(row.id)}
+                    disabled={busy}
+                    onChange={() =>
+                      setSelected((previous) => {
+                        const next = new Set(previous);
+                        if (next.has(row.id)) next.delete(row.id);
+                        else next.add(row.id);
+                        return next;
+                      })
+                    }
+                  />
+                </td>
                 {columns.map(([key]) => (
                   <td
                     key={key}

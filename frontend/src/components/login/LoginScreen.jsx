@@ -1,12 +1,5 @@
 import { useState } from "react";
-import {
-  ArrowRight,
-  Eye,
-  EyeOff,
-  LoaderCircle,
-  LockKeyhole,
-  Mail,
-} from "lucide-react";
+import { ArrowRight, Eye, EyeOff, LoaderCircle, Mail } from "lucide-react";
 import { ErrorMessage } from "../Feedback";
 import LoginBrand from "./LoginBrand";
 import "../../assets/login.css";
@@ -40,9 +33,6 @@ export default function LoginScreen({ busy, error, available, onSubmit }) {
         <LoginBrand />
         <main className="login-panel">
           <div className="login-panel-heading">
-            <span className="login-panel-kicker">
-              <LockKeyhole size={13} aria-hidden="true" /> AKSES WORKSPACE
-            </span>
             <h1>Selamat datang</h1>
             <p>Masuk untuk melanjutkan ke REFRAKSI.</p>
           </div>
@@ -74,7 +64,6 @@ export default function LoginScreen({ busy, error, available, onSubmit }) {
               <div className="login-input-group">
                 <label htmlFor="login-password">Password</label>
                 <div className="login-input-wrap">
-                  <LockKeyhole size={18} aria-hidden="true" />
                   <input
                     id="login-password"
                     name="password"

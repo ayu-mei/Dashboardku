@@ -114,3 +114,47 @@ def test_authentication_validates_supabase_session(monkeypatch):
             assert calls[0][1]['apikey'] == 'sb_publishable_test'
     finally:
         settings.cache_clear()
+
+
+def test_bulk_delete_validates_and_limits_to_explicit_selection(monkeypatch):
+    from uuid import uuid4
+    from app.services.database import authenticated
+    from app.routes import dashboard
+    from fastapi import HTTPException
+
+    calls = []
+    ids = [str(uuid4()) for _ in range(205)]
+    fail = False
+
+    async def fake_database(token, method, table, *, params):
+        assert token == "owner-token"
+        assert method == "DELETE"
+        assert table in ("refraksi_sales", "refraksi_expenses")
+        batch = params["id"][4:-1].split(",")
+        assert 0 < len(batch) <= 100
+        if fail and calls:
+            raise HTTPException(503, "Unavailable")
+        calls.append(batch)
+        return [{"id": value} for value in batch]
+
+    app.dependency_overrides[authenticated] = lambda: "owner-token"
+    monkeypatch.setattr(dashboard, "database", fake_database)
+    try:
+        client = TestClient(app)
+        assert client.post("/api/sales/bulk-delete", json={"ids": []}).status_code == 422
+        assert client.post("/api/sales/bulk-delete", json={"ids": ["bad"]}).status_code == 422
+        assert client.post("/api/other/bulk-delete", json={"ids": ids[:1]}).status_code == 404
+        assert calls == []
+        result = client.post("/api/sales/bulk-delete", json={"ids": ids + ids[:1]})
+        assert result.json() == {"deleted": 205, "requested": 205, "complete": True}
+        assert [value for batch in calls for value in batch] == ids
+        calls.clear()
+        assert client.post("/api/expenses/bulk-delete", json={"ids": ids[:1]}).json()["deleted"] == 1
+        calls.clear()
+        fail = True
+        result = client.post("/api/sales/bulk-delete", json={"ids": ids}).json()
+        assert result["deleted"] == 100
+        assert result["complete"] is False
+    finally:
+        app.dependency_overrides.clear()
+    assert TestClient(app).post("/api/sales/bulk-delete", json={"ids": ids[:1]}).status_code in (401, 503)
