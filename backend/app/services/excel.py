@@ -235,7 +235,7 @@ def export_excel(data):
     groups = [
         (
             "Sales",
-            data["sales"],
+            data.get("transactions", data["sales"]),
             [
                 "id",
                 "date",
@@ -250,10 +250,15 @@ def export_excel(data):
                 "total_hpp",
             ],
         ),
+        ("Recaps", [r for r in data["sales"] if r.get("is_recap")], ["source_sheet", "sku", "product", "category", "location", "period_start", "period_end", "quantity", "sales_value", "total_hpp", "cost_basis"]),
         ("Expenses", data["expenses"], ["id", "date", "description", "amount"]),
-        ("Summary", [data["metrics"]], list(data["metrics"])),
+        ("Master", data.get("master_exports", []), ["sku", "upc", "product", "category", "cost_bali", "cost_lombok", "cost_makassar"]),
+        ("Rafaksi", data.get("claim_exports", []), ["supplier_code", "supplier_name", "period_start", "period_end", "quantity", "amount"]),
+        ("Summary", [{**data["metrics"], "missing_hpp_count": data.get("missing_hpp_count", 0), "note": data.get("note", "")}], list(data["metrics"]) + ["missing_hpp_count", "note"]),
     ]
     for name, rows, headers in groups:
+        if name in {"Recaps", "Master", "Rafaksi"} and not rows:
+            continue
         ws = wb.create_sheet(name)
         ws.append(headers)
         for row in rows:

@@ -142,7 +142,7 @@ def test_full_http_flow_from_empty_data_to_reports(monkeypatch):
     from uuid import uuid4
     from app.routes import dashboard
     from openpyxl import load_workbook
-    state = {'refraksi_sales': [], 'refraksi_expenses': []}
+    state = {'refraksi_sales': [], 'refraksi_expenses': [], 'refraksi_sources': []}
     token = AuthToken('test')
     token.user_id = 'flow-user'
     async def all_records(token, table):

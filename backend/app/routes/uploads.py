@@ -5,6 +5,7 @@ from app.services.database import authenticated, database
 from app.services.excel import inspect_excel, normalize_excel
 from app.services.excel_reports import prepare_report
 from app.utils.config import settings
+from app.models.records import SourceImportOptions
 
 router = APIRouter(prefix="/api/import")
 
@@ -104,4 +105,40 @@ async def process_report(
         # overlapping imports after a row was deleted or concurrent requests.
         await database(token, "POST", "refraksi_sales", body=records)
         return {"imported": len(records)}
+    return view
+
+
+@router.post("/sources/inspect")
+async def inspect_source_file(file: UploadFile = File(...), sheet: str = Form(""), token=Depends(authenticated)):
+    from app.services.source_excel import inspect_sources
+    return await run_in_threadpool(inspect_sources, await content_of(file), sheet)
+
+
+@router.post("/sources/preview")
+@router.post("/sources/commit")
+async def process_source_file(request: Request, file: UploadFile = File(...), sheet: str = Form(...),
+                              options: str = Form("{}"), confirm: bool = Form(False),
+                              preview_signature: str = Form(""), token=Depends(authenticated)):
+    from app.services.source_excel import prepare_source
+    from app.services.sources import check_source_overlap
+    try:
+        parsed = json.loads(options)
+        settings = SourceImportOptions.model_validate(parsed).model_dump(mode="json")
+    except (ValueError, TypeError):
+        raise HTTPException(400, "Pengaturan impor tidak valid.")
+    filename = file.filename or 'sumber.xlsx'
+    view, payload = await run_in_threadpool(prepare_source, await content_of(file), sheet, settings, token.user_id, filename)
+    message, ready = await check_source_overlap(token, payload)
+    view['storage_ready'] = ready
+    if message:
+        view['issues'].append({'row': None, 'message': message})
+        view['issue_count'] += 1
+        view['can_import'] = False
+    if request.url.path.endswith('/commit'):
+        if not confirm or not preview_signature or preview_signature != view['preview_signature']:
+            raise HTTPException(400, 'Periksa preview terbaru dan konfirmasikan sebelum menyimpan.')
+        if not view['can_import']:
+            raise HTTPException(400, 'Data belum dapat disimpan. Periksa seluruh keterangan preview.')
+        await database(token, 'POST', 'refraksi_sources', body=payload)
+        return {'imported': view['count'], 'kind': payload['kind']}
     return view

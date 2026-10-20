@@ -11,15 +11,124 @@
   button,
   a,
   input,
-  select {
+  select,
+  textarea {
     @apply outline-offset-4 focus-visible:outline-2 focus-visible:outline-emerald-500;
   }
-  button {
-    @apply cursor-pointer disabled:cursor-wait disabled:opacity-50;
+  summary {
+    @apply rounded-md outline-offset-4 focus-visible:outline-2 focus-visible:outline-emerald-500;
   }
-  input,
-  select {
-    @apply min-w-0 rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm;
+  button {
+    @apply cursor-pointer disabled:cursor-not-allowed disabled:opacity-50;
+  }
+  input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not(
+      [type="hidden"]
+    ),
+  select,
+  textarea {
+    @apply min-h-11 w-full min-w-0 rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-base text-slate-700 shadow-xs transition-colors sm:text-sm;
+    line-height: 1.5;
+  }
+  input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not(
+      [type="hidden"]
+    ):hover:not(:disabled),
+  select:hover:not(:disabled),
+  textarea:hover:not(:disabled) {
+    border-color: #94a3b8;
+  }
+  input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):focus,
+  select:focus,
+  textarea:focus {
+    border-color: #087d65;
+    box-shadow: 0 0 0 3px rgb(8 125 101 / 12%);
+  }
+  input::placeholder,
+  textarea::placeholder {
+    color: #94a3b8;
+  }
+  input:disabled,
+  select:disabled,
+  textarea:disabled {
+    cursor: not-allowed;
+    background-color: #f1f5f9;
+    color: #64748b;
+    box-shadow: none;
+  }
+  input[type="checkbox"],
+  input[type="radio"] {
+    width: 1rem;
+    height: 1rem;
+    padding: 0;
+    accent-color: #087d65;
+    vertical-align: middle;
+    cursor: pointer;
+  }
+  input[type="checkbox"]:disabled,
+  input[type="radio"]:disabled {
+    cursor: not-allowed;
+  }
+  select:not([multiple]):not([size]) {
+    appearance: none;
+    cursor: pointer;
+    padding-right: 2.75rem;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='%2364758b' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m7 10 5 5 5-5'/%3E%3C/svg%3E");
+    background-position: right 0.875rem center;
+    background-repeat: no-repeat;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  textarea {
+    resize: vertical;
+  }
+  @supports (appearance: base-select) {
+    select:not([multiple]):not([size]),
+    select:not([multiple]):not([size])::picker(select) {
+      appearance: base-select;
+    }
+    select:not([multiple]):not([size])::picker-icon {
+      display: none;
+    }
+    select:not([multiple]):not([size])::picker(select) {
+      margin-block: 0.375rem;
+      max-height: min(20rem, 60dvh);
+      padding: 0.375rem;
+      overflow-y: auto;
+      border: 1px solid #e2e8f0;
+      border-radius: 0.875rem;
+      background: white;
+      color: #334155;
+      box-shadow: 0 16px 40px -12px rgb(15 23 42 / 24%);
+    }
+    select:not([multiple]):not([size]) option {
+      display: flex;
+      align-items: center;
+      gap: 0.625rem;
+      min-height: 2.75rem;
+      padding: 0.625rem 0.75rem;
+      border-radius: 0.5rem;
+      font-size: 0.875rem;
+      line-height: 1.5;
+      white-space: normal;
+      overflow-wrap: anywhere;
+      cursor: pointer;
+    }
+    select:not([multiple]):not([size]) option:hover,
+    select:not([multiple]):not([size]) option:focus {
+      background: #f1f5f9;
+      outline: none;
+    }
+    select:not([multiple]):not([size]) option:checked {
+      background: #ecfdf5;
+      color: #06634f;
+      font-weight: 600;
+    }
+    select:not([multiple]):not([size]) option::checkmark {
+      color: #087d65;
+    }
+    select:not([multiple]):not([size]) option:disabled {
+      color: #94a3b8;
+      cursor: not-allowed;
+    }
   }
   label {
     @apply grid gap-2 text-xs font-medium text-slate-600;
@@ -29,17 +138,33 @@
   }
   td {
     @apply border-t border-slate-100 px-4 py-3.5 text-sm;
+    font-variant-numeric: tabular-nums;
+  }
+  tbody tr {
+    transition: background-color 120ms ease;
+  }
+  tbody tr:hover {
+    background-color: #f8fafc;
+  }
+  tbody tr:has(input[type="checkbox"]:checked) {
+    background-color: #ecfdf5;
+  }
+  dialog::backdrop {
+    backdrop-filter: blur(3px);
   }
 }
 @layer components {
   .btn {
-    @apply inline-flex min-h-10 items-center justify-center gap-2 rounded-lg bg-accent px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-800 disabled:opacity-50;
+    @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-accent px-4 py-2.5 text-sm font-semibold text-white shadow-xs transition-colors hover:bg-emerald-800 active:bg-emerald-900 disabled:opacity-50;
   }
   .btn-secondary {
-    @apply inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-50;
+    @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-600 shadow-xs transition-colors hover:border-slate-300 hover:bg-slate-50 active:bg-slate-100;
   }
   .panel {
     @apply min-w-0 rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm sm:p-6;
+  }
+  .icon-btn {
+    @apply inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-xl text-slate-500 transition-colors hover:bg-slate-100 hover:text-navy;
   }
   .muted {
     @apply text-sm leading-relaxed text-slate-500;
@@ -79,4 +204,20 @@
 .excel-file-input:disabled::file-selector-button {
   cursor: wait;
   opacity: 0.6;
+}
+
+/* Keep the conversation and composer usable when the mobile keyboard opens. */
+@media (max-height: 600px) {
+  .smart-chat-period,
+  .smart-chat-prompts {
+    display: none;
+  }
+}
+@media (max-width: 1279px) and (max-height: 600px) {
+  .smart-chat-actions {
+    display: none;
+  }
+  .smart-chat-panel {
+    max-height: calc(100dvh - 1.5rem);
+  }
 }

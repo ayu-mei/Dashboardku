@@ -53,3 +53,9 @@ Untuk memulai pada lokal: Data Penjualan → Import Excel → REPORT SALES DOUBL
 Sheet **DOUBLE DATE MARET** telah diimpor ke Supabase online melalui sesi pengguna yang aktif, setelah preview dan Konfirmasi Import. Jumlah tersimpan 47 baris; hasil baca ulang dan ekspor cocok dengan sumber: penjualan 11.541.000, HPP 4.953.394,98, gross profit 6.587.605,02. Data tetap ada setelah backend dimuat ulang. File asli tidak diubah.
 
 Percobaan ulang ditolak tanpa menambah jumlah baris. Aplikasi sekarang mendeteksi laporan existing saat preview dan menampilkan “Laporan ini sudah tersimpan”. Pengujian PAYDAY, FLUSH OUT, dan workbook promosi besar tidak menyimpan data baru. Laporan lain tetap mengikuti batas/masalah yang dijelaskan di atas; status keberhasilan Maret tidak berarti seluruh folder telah diimpor.
+
+## Pembaca sumber baru — 20 Oktober 2026
+
+Temuan pembatasan transaksi di atas tetap berlaku pada jalur transaksi lama. Jalur sumber baru kini membedakan master/rekap/rafaksi dan menyimpan rekap dengan total sumber serta periode melalui migrasi tambahan, tanpa membulatkan harga efektif. Karena itu sheet yang dulu ditahan hanya akibat presisi dapat diperiksa melalui alur sumber baru. Dasar HPP harus dipilih eksplisit; tidak ada pemilihan pajak otomatis.
+
+Header tidak cukup untuk menentukan metrik. VALUE PROMO pada beberapa program setara potongan/rafaksi, bukan omzet. Penjualan semua toko yang berulang antarprogram diperiksa berdasarkan SKU/periode pada satu cakupan sumber, bukan dijumlahkan berdasarkan STORE program. Periode tanpa penjualan terukur dengan penanda X/N/A atau jumlah nol dan nilai kosong ditampilkan sebagai pengecualian, tidak diganti nilai nol. Detail alur, pengujian dan kebutuhan aktivasi terdapat di `IMPORT_SUMBER.md`.

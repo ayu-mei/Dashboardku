@@ -8,6 +8,8 @@ import SalesCharts from "../components/SalesCharts";
 import DataTable from "../components/DataTable";
 import ExcelUpload from "../components/ExcelUpload";
 import AnalysisView from "../components/AnalysisView";
+import SourceDataPanel from "../components/SourceDataPanel";
+import SmartDashboard from "../components/SmartDashboard";
 import RecordEditor from "../components/RecordEditor";
 import { Loading, ErrorMessage } from "../components/Feedback";
 export default function DashboardPage({ page, onPage }) {
@@ -18,6 +20,8 @@ export default function DashboardPage({ page, onPage }) {
     options = useRef({}),
     years = useRef([]);
   const [importing, setImporting] = useState(false);
+  const [dataTab, setDataTab] = useState("sales");
+  const [sourceId, setSourceId] = useState(null);
   const [editing, setEditing] = useState(null),
     [busy, setBusy] = useState(false),
     [error, setError] = useState(""),
@@ -93,8 +97,9 @@ export default function DashboardPage({ page, onPage }) {
   }
   const title = {
     dashboard: "Dashboard Penjualan",
-    data: "Data Penjualan",
+    data: "Data Bisnis",
     analysis: "Analisis Penjualan",
+    smart: "Smart Dashboard",
   }[page];
   return (
     <>
@@ -103,9 +108,10 @@ export default function DashboardPage({ page, onPage }) {
           <p className="mb-2 text-[10px] font-semibold tracking-[.2em] text-accent">
             {
               {
-                dashboard: "BUSINESS OVERVIEW",
+                dashboard: "RINGKASAN BISNIS",
                 data: "KELOLA DATA",
                 analysis: "ANALISIS PERFORMA",
+                smart: "ASISTEN BISNIS",
               }[page]
             }
           </p>
@@ -119,6 +125,7 @@ export default function DashboardPage({ page, onPage }) {
                 data: "Masukkan, periksa, dan kelola sumber data bisnis Anda.",
                 analysis:
                   "Pahami tren, perubahan, kontribusi, dan profitabilitas penjualan.",
+                smart: "Pantau bisnis dan tentukan langkah berikutnya.",
               }[page]
             }
           </p>
@@ -182,11 +189,22 @@ export default function DashboardPage({ page, onPage }) {
       {model.loading && <Loading />}
       {model.data && (
         <>
+          {page === "smart" && (
+            <SmartDashboard
+              reportData={model.data}
+              query={model.query}
+              setFilters={model.setFilters}
+              onPage={onPage}
+            />
+          )}
           {page === "dashboard" && (
             <>
               {(model.data.sales.length > 0 ||
                 model.data.expenses.length > 0) && (
-                <SummaryCards metrics={model.data.metrics} />
+                <SummaryCards
+                  metrics={model.data.metrics}
+                  missingHppCount={model.data.missing_hpp_count}
+                />
               )}
               {model.data.sales.length > 0 ? (
                 <SalesCharts data={model.data} />
@@ -201,32 +219,104 @@ export default function DashboardPage({ page, onPage }) {
             ) : (
               <EmptySales analysis onPage={onPage} />
             ))}
-          {page !== "analysis" && (
-            <p className="my-4 rounded-xl border border-slate-200 bg-slate-100/70 p-3 text-xs leading-relaxed text-slate-500">
-              {model.data.note}
-            </p>
-          )}
           {page === "data" && (
             <>
-              <section className="panel my-5">
+              <div
+                role="tablist"
+                aria-label="Data Bisnis"
+                className="mb-5 flex gap-1 rounded-xl border border-slate-200 bg-white p-1"
+              >
+                {[
+                  ["sales", "Penjualan"],
+                  ["expenses", "Biaya"],
+                  ["imports", "Riwayat Impor"],
+                ].map(([id, label], index) => (
+                  <button
+                    key={id}
+                    id={`data-tab-${id}`}
+                    role="tab"
+                    aria-selected={dataTab === id}
+                    aria-controls={`data-panel-${id}`}
+                    tabIndex={dataTab === id ? 0 : -1}
+                    className={`min-h-11 flex-1 rounded-lg px-2 py-2 text-sm font-semibold ${dataTab === id ? "bg-navy text-white" : "text-slate-500 hover:bg-slate-50"}`}
+                    onClick={() => {
+                      setDataTab(id);
+                      if (id === "imports") setSourceId(null);
+                    }}
+                    onKeyDown={(event) => {
+                      const ids = ["sales", "expenses", "imports"];
+                      const next =
+                        event.key === "ArrowRight"
+                          ? (index + 1) % 3
+                          : event.key === "ArrowLeft"
+                            ? (index + 2) % 3
+                            : event.key === "Home"
+                              ? 0
+                              : event.key === "End"
+                                ? 2
+                                : null;
+                      if (next !== null) {
+                        event.preventDefault();
+                        setDataTab(ids[next]);
+                        document
+                          .getElementById(`data-tab-${ids[next]}`)
+                          ?.focus();
+                      }
+                    }}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+              {dataTab === "imports" && (
+                <div
+                  role="tabpanel"
+                  id="data-panel-imports"
+                  aria-labelledby="data-tab-imports"
+                >
+                  <SourceDataPanel
+                    initialSourceId={sourceId}
+                    sources={model.data.sources}
+                    ready={model.data.source_storage_ready}
+                    reload={model.reload}
+                  />
+                </div>
+              )}
+              <section
+                role="tabpanel"
+                id="data-panel-sales"
+                aria-labelledby="data-tab-sales"
+                hidden={dataTab !== "sales"}
+                className="panel my-5"
+              >
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
-                    <h2 className="font-semibold">Transaksi penjualan</h2>
+                    <h2 className="font-semibold">Penjualan</h2>
                     <p className="muted mt-1">
-                      Cari, urutkan, dan kelola transaksi pada pilihan filter.
+                      Transaksi dan rekap hasil impor pada periode pilihan.
                     </p>
                   </div>
                 </div>
                 <DataTable
                   rows={model.data.sales}
                   kind="sales"
+                  onSource={(id) => {
+                    setSourceId(id);
+                    setDataTab("imports");
+                  }}
                   onEdit={setEditing}
                   onDelete={remove}
                   onBulkDelete={removeSelected}
                   busy={busy}
                 />
               </section>
-              <section className="panel my-5">
+              <section
+                role="tabpanel"
+                id="data-panel-expenses"
+                aria-labelledby="data-tab-expenses"
+                hidden={dataTab !== "expenses"}
+                className="panel my-5"
+              >
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
                     <h2 className="font-semibold">Biaya operasional</h2>
@@ -256,14 +346,24 @@ export default function DashboardPage({ page, onPage }) {
           )}
         </>
       )}
-      <footer className="mt-8 text-xs leading-loose text-slate-400">
-        Gross profit = penjualan − HPP · Actual net profit = gross profit −
-        biaya operasional.
-        <br />
-        Margin dihitung dari total penjualan. Saat penjualan nol, margin
-        ditampilkan “-”. Pajak/bunga/biaya yang belum dicatat belum mengurangi
-        laba.
-      </footer>
+      {model.data && (
+        <details className="mt-6 text-xs text-slate-500">
+          <summary className="min-h-10 cursor-pointer py-3 font-medium">
+            Detail perhitungan
+          </summary>
+          <div className="mt-2 space-y-2 rounded-xl border border-slate-200 bg-white p-4 leading-relaxed">
+            <p>
+              Laba kotor = penjualan − HPP. Laba bersih = laba kotor − biaya
+              operasional.
+            </p>
+            <p>{model.data.note}</p>
+            <p>
+              Margin tidak tersedia saat penjualan nol. Pajak, bunga, dan biaya
+              yang belum dicatat belum mengurangi laba.
+            </p>
+          </div>
+        </details>
+      )}
       {page === "data" && importing && (
         <ExcelUpload
           initialYear={model.filters.year}

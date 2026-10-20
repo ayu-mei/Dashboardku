@@ -2,7 +2,7 @@ from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
-from app.routes import dashboard, uploads
+from app.routes import dashboard, uploads, smart
 from app.utils.config import settings
 
 app = FastAPI(title="Refraksi REST API", version="1.0.0")
@@ -61,3 +61,4 @@ def health():
 
 app.include_router(dashboard.router)
 app.include_router(uploads.router)
+app.include_router(smart.router)

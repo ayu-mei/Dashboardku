@@ -10,7 +10,7 @@ import {
   Tooltip,
   Legend,
 } from "recharts";
-import { rupiah, percent, compact } from "../utils/format";
+import { rupiah, percent, compact, monthLabel } from "../utils/format";
 
 function periodLabel(period) {
   if (!period) return "Periode terpilih";
@@ -94,6 +94,16 @@ export default function AnalysisView({ data }) {
   ];
   return (
     <>
+      {data.missing_hpp_count > 0 && (
+        <p
+          role="status"
+          className="my-4 rounded-xl bg-amber-50 p-4 text-sm text-amber-900"
+        >
+          HPP belum lengkap pada {data.missing_hpp_count} baris. Omzet tetap
+          tersedia; laba dan peringkat profit hanya tersedia untuk produk dengan
+          HPP lengkap.
+        </p>
+      )}
       <section className="panel my-5">
         <h2 className="font-semibold">Perbandingan Periode</h2>
         <p className="mt-2 text-sm text-navy">
@@ -113,7 +123,7 @@ export default function AnalysisView({ data }) {
           metric={data.comparisons.sales}
         />
         <GrowthCard
-          title="Pertumbuhan Gross Profit"
+          title="Pertumbuhan Laba Kotor"
           metric={data.comparisons.gross}
         />
         <ProductLeader
@@ -130,8 +140,8 @@ export default function AnalysisView({ data }) {
       <section className="panel my-5">
         <h2 className="font-semibold">Performa Penjualan</h2>
         <p className="muted mt-1">
-          Penjualan dan gross profit per bulan pada periode terpilih.
-          Perbandingan periode tersedia pada ringkasan di atas.
+          Penjualan dan laba kotor per bulan pada periode terpilih. Perbandingan
+          periode tersedia pada ringkasan di atas.
         </p>
         <div className="mt-5 h-72 min-w-0">
           <ResponsiveContainer width="100%" height="100%">
@@ -139,7 +149,7 @@ export default function AnalysisView({ data }) {
               data={data.timeline.map((row) => ({
                 ...row,
                 sales: Number(row.sales),
-                gross: Number(row.gross),
+                gross: row.gross === null ? null : Number(row.gross),
               }))}
               margin={{ left: 0, right: 10 }}
             >
@@ -148,21 +158,27 @@ export default function AnalysisView({ data }) {
                 vertical={false}
                 stroke="#e2e8f0"
               />
-              <XAxis dataKey="month" tick={{ fontSize: 10 }} minTickGap={22} />
+              <XAxis
+                dataKey="month"
+                tickFormatter={(value) => monthLabel(value)}
+                tick={{ fontSize: 10 }}
+                minTickGap={22}
+              />
               <YAxis
                 width={65}
                 tickFormatter={compact}
                 tick={{ fontSize: 10 }}
               />
               <Tooltip
+                labelFormatter={(value) => monthLabel(value, true)}
                 formatter={(value, name) => [
                   rupiah(value),
-                  name === "sales" ? "Penjualan" : "Gross Profit",
+                  name === "sales" ? "Penjualan" : "Laba Kotor",
                 ]}
               />
               <Legend
                 formatter={(name) =>
-                  name === "sales" ? "Penjualan" : "Gross Profit"
+                  name === "sales" ? "Penjualan" : "Laba Kotor"
                 }
               />
               <Bar
@@ -223,7 +239,7 @@ export default function AnalysisView({ data }) {
           <table className="w-full min-w-[640px]">
             <thead>
               <tr>
-                {["Produk", "Penjualan", "HPP", "Gross Profit", "Margin"].map(
+                {["Produk", "Penjualan", "HPP", "Laba Kotor", "Margin"].map(
                   (label) => (
                     <th key={label}>{label}</th>
                   ),
@@ -278,13 +294,13 @@ export default function AnalysisView({ data }) {
       <section className="panel my-5">
         <h2 className="font-semibold">Top &amp; Bottom Performance</h2>
         <p className="muted mt-1">
-          Peringkat berdasarkan gross profit, bukan hanya omzet. Produk pada
-          kedua kelompok tidak diulang.
+          Peringkat berdasarkan laba kotor, bukan hanya omzet. Produk pada kedua
+          kelompok tidak diulang.
         </p>
         <div className="mt-5 grid gap-6 sm:grid-cols-2">
           {[
-            ["Gross profit tertinggi", data.ranking.top],
-            ["Gross profit terendah", data.ranking.bottom],
+            ["Laba kotor tertinggi", data.ranking.top],
+            ["Laba kotor terendah", data.ranking.bottom],
           ].map(([label, rows]) => (
             <div key={label}>
               <h3 className="mb-3 text-sm font-semibold text-navy">{label}</h3>

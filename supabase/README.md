@@ -38,3 +38,11 @@ Harga/HPP dua desimal belum cukup untuk seluruh laporan sumber. Maret dapat disi
 Dukungan penuh perlu menyimpan total aktual dan asal laporan secara eksplisit, lalu menyesuaikan backend, dashboard, analisis, ekspor, validasi dan deduplikasi bersama-sama. Menambah kolom saja belum cukup; tidak ada migration rekap atau perubahan fungsi bisnis yang diterapkan pada audit ini.
 
 Referensi: [RLS Supabase](https://supabase.com/docs/guides/database/postgres/row-level-security), [fungsi database](https://supabase.com/docs/guides/database/functions), [numeric PostgreSQL](https://www.postgresql.org/docs/current/datatype-numeric.html).
+
+## Penyimpanan sumber impor (20 Oktober 2026)
+
+Migrasi tambahan `migrations/202610200001_source_imports.sql` menambahkan `refraksi_sources` untuk master, rekap penjualan dengan total sumber/HPP opsional, serta rafaksi supplier. Transaksi existing tetap memakai validasi dua desimal. Tabel baru hanya memberikan SELECT/INSERT/DELETE kepada pemilik; tidak ada UPDATE sumber agar validasi, fingerprint dan jejak sumber tidak berubah diam-diam.
+
+Trigger memeriksa nilai, periode, pengulangan dan irisan dengan sumber/transaksi lama. Penulisan sumber dan transaksi diserialkan per akun memakai advisory lock. Impor satu sumber merupakan satu INSERT atomik, tidak menyimpan sebagian baris ketika validasi gagal. Data master/rafaksi tidak masuk perhitungan omzet backend. Fungsi SQL dashboard lama tetap khusus tabel transaksi; endpoint backend aktif menggabungkan transaksi dan rekap serta menangani HPP yang belum lengkap.
+
+Jalankan migrasi tambahan ini setelah 001–003, tanpa menjalankan ulang 001 pada database existing. `tests/source_imports.sql` menguji isolasi akun, anon, pemalsuan pemilik, duplikasi, presisi agregat, dan irisan dua arah dengan transaksi. Lihat `IMPORT_SUMBER.md` di root untuk aktivasi dan batas penggunaan.

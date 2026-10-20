@@ -10,13 +10,15 @@ import {
   Tooltip,
   Legend,
 } from "recharts";
-import { rupiah, compact, percent } from "../utils/format";
+import { rupiah, compact, percent, monthLabel } from "../utils/format";
 import { Empty } from "./Feedback";
-export default function SalesCharts({ data }) {
+export default function SalesCharts({ data, stacked = false }) {
   return (
-    <section className="my-5 grid min-w-0 gap-5 xl:grid-cols-5">
-      <article className="panel xl:col-span-3">
-        <h2 className="font-semibold">Tren penjualan & gross profit</h2>
+    <section
+      className={`grid min-w-0 gap-5 ${stacked ? "grid-cols-1" : "my-5 xl:grid-cols-5"}`}
+    >
+      <article className={`panel ${stacked ? "" : "xl:col-span-3"}`}>
+        <h2 className="font-semibold">Tren penjualan & laba kotor</h2>
         <p className="muted mt-1">Ringkasan per bulan pada periode terpilih.</p>
         {!data.sales.length ? (
           <Empty />
@@ -27,7 +29,7 @@ export default function SalesCharts({ data }) {
                 data={data.timeline.map((row) => ({
                   ...row,
                   sales: Number(row.sales),
-                  gross: Number(row.gross),
+                  gross: row.gross === null ? null : Number(row.gross),
                 }))}
                 margin={{ left: 0, right: 5, top: 10, bottom: 5 }}
               >
@@ -38,6 +40,7 @@ export default function SalesCharts({ data }) {
                 />
                 <XAxis
                   dataKey="month"
+                  tickFormatter={(value) => monthLabel(value)}
                   tick={{ fontSize: 10 }}
                   minTickGap={22}
                 />
@@ -47,14 +50,15 @@ export default function SalesCharts({ data }) {
                   tickFormatter={compact}
                 />
                 <Tooltip
+                  labelFormatter={(value) => monthLabel(value, true)}
                   formatter={(value, name) => [
                     rupiah(value),
-                    name === "sales" ? "Penjualan" : "Gross Profit",
+                    name === "sales" ? "Penjualan" : "Laba Kotor",
                   ]}
                 />
                 <Legend
                   formatter={(name) =>
-                    name === "sales" ? "Penjualan" : "Gross Profit"
+                    name === "sales" ? "Penjualan" : "Laba Kotor"
                   }
                 />
                 <Bar
@@ -74,7 +78,7 @@ export default function SalesCharts({ data }) {
           </div>
         )}
       </article>
-      <article className="panel xl:col-span-2">
+      <article className={`panel ${stacked ? "" : "xl:col-span-2"}`}>
         <h2 className="font-semibold">Penjualan berdasarkan produk</h2>
         <p className="muted mt-1">
           8 produk terbesar · tooltip menampilkan kontribusi.
@@ -99,10 +103,12 @@ export default function SalesCharts({ data }) {
                 <YAxis
                   type="category"
                   dataKey="product"
-                  width={90}
+                  width={stacked ? 130 : 90}
                   tick={{ fontSize: 10 }}
                   tickFormatter={(name) =>
-                    name.length > 14 ? name.slice(0, 13) + "…" : name
+                    name.length > (stacked ? 22 : 14)
+                      ? name.slice(0, stacked ? 21 : 13) + "…"
+                      : name
                   }
                 />
                 <Tooltip

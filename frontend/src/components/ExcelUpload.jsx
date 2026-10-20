@@ -3,6 +3,8 @@ import { Upload, X } from "lucide-react";
 import { api } from "../services/api";
 import { ErrorMessage } from "./Feedback";
 import ExcelReportReview from "./ExcelReportReview";
+import SourceImportReview from "./SourceImportReview";
+import ImportAIHelp from "./ImportAIHelp";
 const MAX_UPLOAD_MB = 50;
 const MAX_UPLOAD_BYTES = MAX_UPLOAD_MB * 1024 * 1024;
 const fields = [
@@ -56,8 +58,10 @@ export default function ExcelUpload({ onImported, onClose, initialYear }) {
       col.name.trim(),
     ),
   );
+  const sourceMode =
+    profile?.source_profile && profile.source_profile.kind !== "transaction";
   const currentStep =
-    preview || (profile?.report && reviewing)
+    preview || ((profile?.report || sourceMode) && reviewing)
       ? 3
       : profile?.sheet
         ? 2
@@ -74,7 +78,7 @@ export default function ExcelUpload({ onImported, onClose, initialYear }) {
   }
   async function importRequest(path, body) {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 45000);
+    const timeout = setTimeout(() => controller.abort(), 120000);
     try {
       return await api(path, {
         method: "POST",
@@ -114,6 +118,7 @@ export default function ExcelUpload({ onImported, onClose, initialYear }) {
             columns: [],
             sample: [],
             report: null,
+            source_profile: null,
           }
         : null,
     );
@@ -133,7 +138,18 @@ export default function ExcelUpload({ onImported, onClose, initialYear }) {
       const body = new FormData();
       body.append("file", nextFile);
       if (nextSheet) body.append("sheet", nextSheet);
-      const value = await importRequest("/api/import/inspect", body);
+      let value = await importRequest("/api/import/sources/inspect", body);
+      if (["transaction", "unknown"].includes(value.source_profile?.kind)) {
+        const transaction = await importRequest("/api/import/inspect", body);
+        value = {
+          ...value,
+          ...transaction,
+          source_profile:
+            value.source_profile?.kind === "unknown"
+              ? null
+              : value.source_profile,
+        };
+      }
       setProfile(value);
       setSheet(value.sheet);
       setHeader(value.header_row ?? null);
@@ -213,6 +229,7 @@ export default function ExcelUpload({ onImported, onClose, initialYear }) {
           onClick={onClose}
           disabled={busy}
           aria-label="Tutup import"
+          className="icon-btn"
         >
           <X size={18} />
         </button>
@@ -321,26 +338,98 @@ export default function ExcelUpload({ onImported, onClose, initialYear }) {
               <option value="" disabled>
                 Pilih sheet yang akan diimpor
               </option>
-              {profile.sheets.map((name) => (
-                <option key={name}>{name}</option>
-              ))}
+              {profile.sheets.map((name) => {
+                const info = profile.sheet_profiles?.find(
+                  (item) => item.name === name,
+                );
+                return (
+                  <option key={name} value={name}>
+                    {name}
+                    {info
+                      ? ` — ${info.label}${info.hidden ? " (tersembunyi)" : ""}`
+                      : ""}
+                  </option>
+                );
+              })}
             </select>
           </label>
         )}
       </div>
+      {profile?.sheet_profiles?.length > 1 && (
+        <section
+          className="my-4 rounded-xl border border-slate-200 p-4"
+          aria-label="Isi workbook"
+        >
+          <h3 className="font-semibold">Isi workbook Anda</h3>
+          <p className="muted mt-2">
+            Pilih satu sumber utama. Sheet tahunan, bulanan, event dan pivot
+            bisa memuat penjualan yang sama; aplikasi akan memeriksa irisan
+            sebelum menyimpan.
+          </p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            {[...new Set(profile.sheet_profiles.map((item) => item.label))].map(
+              (label) => (
+                <span
+                  key={label}
+                  className="rounded-lg bg-slate-100 px-3 py-2 text-xs"
+                >
+                  {label}:{" "}
+                  {
+                    profile.sheet_profiles.filter(
+                      (item) => item.label === label,
+                    ).length
+                  }
+                </span>
+              ),
+            )}
+          </div>
+          <div className="mt-3 flex max-h-44 flex-wrap gap-2 overflow-y-auto">
+            {profile.sheet_profiles
+              .filter((item) => item.recommended)
+              .map((item) => (
+                <button
+                  key={item.name}
+                  type="button"
+                  className="btn-secondary text-xs"
+                  disabled={busy}
+                  onClick={() => inspect(file, item.name)}
+                >
+                  {item.name} · {item.label}
+                </button>
+              ))}
+          </div>
+        </section>
+      )}
       {error && <ErrorMessage message={error} />}{" "}
+      {!sourceMode && profile?.sheet && (
+        <ImportAIHelp profile={profile} preview={preview} />
+      )}
       {busy && (
         <p role="status" className="muted my-4">
           Memproses data…
         </p>
       )}
-      {!busy && profile?.sheet && !profile.recognized && (
+      {!sourceMode && !busy && profile?.sheet && !profile.recognized && (
         <p role="status" className="my-4 rounded-xl bg-amber-50 p-4 text-sm">
           Struktur data belum dapat dikenali. Pilih sheet lain atau periksa
           format file Excel.
         </p>
       )}
-      {profile?.report && (
+      {sourceMode && (
+        <SourceImportReview
+          key={file?.name + ":" + profile.sheet}
+          file={file}
+          profile={profile}
+          initialYear={initialYear}
+          busy={busy}
+          setBusy={setBusy}
+          request={importRequest}
+          onStage={setReviewing}
+          onImported={onImported}
+          onClose={onClose}
+        />
+      )}
+      {!sourceMode && profile?.report && (
         <ExcelReportReview
           file={file}
           profile={profile}
@@ -353,7 +442,7 @@ export default function ExcelUpload({ onImported, onClose, initialYear }) {
           onClose={onClose}
         />
       )}
-      {profile?.recognized && !profile.report && (
+      {!sourceMode && profile?.recognized && !profile.report && (
         <div className="my-5 space-y-4">
           <div
             role="status"
@@ -455,7 +544,7 @@ export default function ExcelUpload({ onImported, onClose, initialYear }) {
           </button>
         </div>
       )}
-      {profile?.recognized && !profile.report && reviewing && (
+      {!sourceMode && profile?.recognized && !profile.report && reviewing && (
         <>
           <h3 className="mb-2 font-semibold">Preview data Excel</h3>
           <p className="muted mb-4">
@@ -484,98 +573,104 @@ export default function ExcelUpload({ onImported, onClose, initialYear }) {
           </div>
         </>
       )}
-      {profile?.recognized && !profile.report && (reviewing || mappingOpen) && (
-        <details
-          ref={mappingPanel}
-          className="my-5 rounded-xl border border-slate-200 p-4"
-          open={mappingOpen}
-          onToggle={(event) => setMappingOpen(event.currentTarget.open)}
-        >
-          <summary className="cursor-pointer text-sm font-semibold text-navy">
-            Pengaturan lanjutan: pencocokan kolom
-          </summary>
-          <p className="muted mt-3">
-            Kolom yang dikenali sudah dipilih otomatis. Sesuaikan jika nama
-            kolom berbeda. Kolom bertanda * wajib tersedia. Kolom yang sudah
-            dipakai isian lain tidak dapat dipilih lagi. Isian opsional boleh
-            tetap Tidak tersedia.
-          </p>
-          {missingFields.length > 0 && (
-            <p role="status" className="mt-3 text-sm text-amber-900">
-              Belum cocok: {missingFields.map(([, label]) => label).join(", ")}.
-              Jika informasi ini tidak ada di sheet, pilih sheet atau file lain.
-            </p>
-          )}
-          {conflicts.length > 0 && (
-            <p role="alert" className="mt-3 text-sm text-amber-900">
-              Ada kolom yang dipakai untuk beberapa isian. Perbaiki pilihan
-              sebelum memeriksa data.
-            </p>
-          )}
-          <p className="mt-3 rounded-lg bg-amber-50 p-3 text-xs leading-relaxed text-amber-900">
-            {profile.warning}
-          </p>
-          <div className="my-5 grid gap-4 sm:grid-cols-2">
-            {fields.map(([key, label, required]) => (
-              <label key={key}>
-                {label}
-                {required ? " *" : ""}
-                <select
-                  aria-label={label + (required ? " *" : "")}
-                  value={mapping[key] ?? ""}
-                  disabled={busy}
-                  onChange={(e) => {
-                    const nextIndex =
-                      e.target.value === "" ? null : Number(e.target.value);
-                    if (
-                      nextIndex !== null &&
-                      columnUsage.get(nextIndex)?.some((use) => use.key !== key)
-                    )
-                      return;
-                    setMapping((previous) => ({
-                      ...previous,
-                      [key]: nextIndex,
-                    }));
-                    setPreview(null);
-                    setConfirmed(false);
-                    setError("");
-                  }}
-                >
-                  <option value="">
-                    {required ? "Pilih kolom yang sesuai" : "Tidak tersedia"}
-                  </option>
-                  {profile.columns.map((col) => {
-                    const otherUses =
-                      columnUsage
-                        .get(col.index)
-                        ?.filter((use) => use.key !== key) ?? [];
-                    return (
-                      <option
-                        key={col.index}
-                        value={col.index}
-                        disabled={otherUses.length > 0}
-                      >
-                        {col.name} (kolom {col.index + 1})
-                        {otherUses.length > 0
-                          ? ` — sudah dipakai untuk ${otherUses.map(({ label }) => label).join(", ")}`
-                          : ""}
-                      </option>
-                    );
-                  })}
-                </select>
-              </label>
-            ))}
-          </div>
-          <button
-            className="btn-secondary"
-            disabled={busy || !completeMapping}
-            onClick={() => process(false)}
+      {!sourceMode &&
+        profile?.recognized &&
+        !profile.report &&
+        (reviewing || mappingOpen) && (
+          <details
+            ref={mappingPanel}
+            className="my-5 rounded-xl border border-slate-200 p-4"
+            open={mappingOpen}
+            onToggle={(event) => setMappingOpen(event.currentTarget.open)}
           >
-            Periksa Data Transaksi
-          </button>
-        </details>
-      )}
-      {!preview && !profile?.report && (
+            <summary className="cursor-pointer text-sm font-semibold text-navy">
+              Pengaturan lanjutan: pencocokan kolom
+            </summary>
+            <p className="muted mt-3">
+              Kolom yang dikenali sudah dipilih otomatis. Sesuaikan jika nama
+              kolom berbeda. Kolom bertanda * wajib tersedia. Kolom yang sudah
+              dipakai isian lain tidak dapat dipilih lagi. Isian opsional boleh
+              tetap Tidak tersedia.
+            </p>
+            {missingFields.length > 0 && (
+              <p role="status" className="mt-3 text-sm text-amber-900">
+                Belum cocok:{" "}
+                {missingFields.map(([, label]) => label).join(", ")}. Jika
+                informasi ini tidak ada di sheet, pilih sheet atau file lain.
+              </p>
+            )}
+            {conflicts.length > 0 && (
+              <p role="alert" className="mt-3 text-sm text-amber-900">
+                Ada kolom yang dipakai untuk beberapa isian. Perbaiki pilihan
+                sebelum memeriksa data.
+              </p>
+            )}
+            <p className="mt-3 rounded-lg bg-amber-50 p-3 text-xs leading-relaxed text-amber-900">
+              {profile.warning}
+            </p>
+            <div className="my-5 grid gap-4 sm:grid-cols-2">
+              {fields.map(([key, label, required]) => (
+                <label key={key}>
+                  {label}
+                  {required ? " *" : ""}
+                  <select
+                    aria-label={label + (required ? " *" : "")}
+                    value={mapping[key] ?? ""}
+                    disabled={busy}
+                    onChange={(e) => {
+                      const nextIndex =
+                        e.target.value === "" ? null : Number(e.target.value);
+                      if (
+                        nextIndex !== null &&
+                        columnUsage
+                          .get(nextIndex)
+                          ?.some((use) => use.key !== key)
+                      )
+                        return;
+                      setMapping((previous) => ({
+                        ...previous,
+                        [key]: nextIndex,
+                      }));
+                      setPreview(null);
+                      setConfirmed(false);
+                      setError("");
+                    }}
+                  >
+                    <option value="">
+                      {required ? "Pilih kolom yang sesuai" : "Tidak tersedia"}
+                    </option>
+                    {profile.columns.map((col) => {
+                      const otherUses =
+                        columnUsage
+                          .get(col.index)
+                          ?.filter((use) => use.key !== key) ?? [];
+                      return (
+                        <option
+                          key={col.index}
+                          value={col.index}
+                          disabled={otherUses.length > 0}
+                        >
+                          {col.name} (kolom {col.index + 1})
+                          {otherUses.length > 0
+                            ? ` — sudah dipakai untuk ${otherUses.map(({ label }) => label).join(", ")}`
+                            : ""}
+                        </option>
+                      );
+                    })}
+                  </select>
+                </label>
+              ))}
+            </div>
+            <button
+              className="btn-secondary"
+              disabled={busy || !completeMapping}
+              onClick={() => process(false)}
+            >
+              Periksa Data Transaksi
+            </button>
+          </details>
+        )}
+      {!sourceMode && !preview && !profile?.report && (
         <div className="mt-5 flex justify-end">
           <button
             type="button"

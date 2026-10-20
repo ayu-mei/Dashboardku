@@ -53,34 +53,37 @@ def analyse(sales, expenses, filters):
         ))
     comparisons = {}
     for key in ('sales', 'gross', 'operational'):
-        value = decimal(current['metrics'][key])
+        value = decimal(current['metrics'][key]) if current['metrics'][key] is not None else None
         relevant_rows = 'expenses' if key == 'operational' else 'sales'
         available = previous is not None and bool(previous[relevant_rows])
-        prior = decimal(previous['metrics'][key]) if available else None
-        delta = value - prior if prior is not None else None
+        prior = decimal(previous['metrics'][key]) if available and previous['metrics'][key] is not None else None
+        delta = value - prior if prior is not None and value is not None else None
         # Negative/zero profit baselines don't yield a meaningful growth percentage.
-        growth = delta / prior * 100 if prior is not None and prior > 0 else None
+        growth = delta / prior * 100 if delta is not None and prior is not None and prior > 0 else None
         comparisons[key] = {
-            'current': str(value), 'previous': str(prior) if prior is not None else None,
+            'current': str(value) if value is not None else None, 'previous': str(prior) if prior is not None else None,
             'change': str(delta) if delta is not None else None,
             'growth': str(growth) if growth is not None else None,
         }
-    grouped = defaultdict(lambda: {'sales': Decimal(0), 'hpp': Decimal(0)})
+    grouped = defaultdict(lambda: {'sales': Decimal(0), 'hpp': Decimal(0), 'complete': True})
     for row in current['sales']:
         grouped[row['product']]['sales'] += decimal(row['sales_value'])
-        grouped[row['product']]['hpp'] += decimal(row['total_hpp'])
+        if row['total_hpp'] is not None:
+            grouped[row['product']]['hpp'] += decimal(row['total_hpp'])
+        else:
+            grouped[row['product']]['complete'] = False
     total = decimal(current['metrics']['sales'])
     products = []
     for name, values in grouped.items():
-        gross = values['sales'] - values['hpp']
+        gross = values['sales'] - values['hpp'] if values['complete'] else None
         products.append({
-            'product': name, 'sales': str(values['sales']), 'hpp': str(values['hpp']),
-            'gross': str(gross),
-            'margin': str(gross / values['sales'] * 100) if values['sales'] else None,
+            'product': name, 'sales': str(values['sales']), 'hpp': str(values['hpp']) if values['complete'] else None,
+            'gross': str(gross) if gross is not None else None,
+            'margin': str(gross / values['sales'] * 100) if values['sales'] and gross is not None else None,
             'contribution': str(values['sales'] / total * 100) if total else None,
         })
     products.sort(key=lambda p: (-decimal(p['sales']), p['product']))
-    ranked = sorted(products, key=lambda p: (-decimal(p['gross']), p['product']))
+    ranked = sorted((p for p in products if p['gross'] is not None), key=lambda p: (-decimal(p['gross']), p['product']))
     top_count = min(3, (len(ranked) + 1) // 2)
     best_margin = sorted((p for p in products if p['margin'] is not None),
                          key=lambda p: (-decimal(p['margin']), -decimal(p['gross']), p['product']))
@@ -101,5 +104,6 @@ def analyse(sales, expenses, filters):
         'timeline': current['timeline'],
         'previous_timeline': previous['timeline'] if previous else [],
         'options': current['options'], 'years': current['years'],
-        'note': 'Profitabilitas produk memakai gross profit sebelum biaya operasional. Biaya belum dialokasikan per produk/kategori/lokasi.',
+        'missing_hpp_count': current['missing_hpp_count'],
+        'note': current['note'] + ' Profitabilitas produk memakai gross profit sebelum biaya operasional. Biaya belum dialokasikan per produk/kategori/lokasi.',
     }

@@ -41,10 +41,15 @@ def report_filters(
 
 
 async def get_report(filters, token, calculator=report):
-    sales, expenses = await gather(
-        all_records(token, "refraksi_sales"), all_records(token, "refraksi_expenses")
+    from app.services.sources import source_datasets, recap_sales, source_summary
+    sales, expenses, source_state = await gather(
+        all_records(token, "refraksi_sales"), all_records(token, "refraksi_expenses"), source_datasets(token, all_records)
     )
-    return await run_in_threadpool(calculator, sales, expenses, filters)
+    datasets, ready = source_state
+    result = await run_in_threadpool(calculator, sales + recap_sales(datasets), expenses, filters)
+    result['source_storage_ready'] = ready
+    result['sources'] = [source_summary(dataset, filters) for dataset in datasets]
+    return result
 
 
 @router.get("/dashboard")
@@ -66,6 +71,11 @@ async def download(
     filters: Filters = Depends(report_filters), token=Depends(authenticated)
 ):
     data = await get_report(filters, token)
+    from app.services.sources import source_datasets
+    from app.services.finance import in_period
+    datasets, _ = await source_datasets(token, all_records)
+    data['master_exports'] = [{**row, **{'cost_' + region: row.get('regional_costs', {}).get(region) for region in ['bali', 'lombok', 'makassar']}} for dataset in datasets if dataset['kind'] == 'master' for row in dataset['records']]
+    data['claim_exports'] = [row for dataset in datasets if dataset['kind'] == 'supplier_claim' for row in dataset['records'] if in_period(row, filters)]
     content = await run_in_threadpool(export_excel, data)
     return StreamingResponse(
         content,
@@ -117,6 +127,22 @@ async def edit_expense(record_id: UUID, record: Expense, token=Depends(authentic
     if not rows:
         raise HTTPException(404, "Biaya tidak ditemukan atau tidak diizinkan.")
     return rows
+
+
+@router.delete("/sources/{source_id}")
+async def delete_source(source_id: UUID, token=Depends(authenticated)):
+    rows = await database(token, "DELETE", "refraksi_sources", params={"id": "eq." + str(source_id)})
+    if not rows:
+        raise HTTPException(404, "Sumber tidak ditemukan atau tidak diizinkan.")
+    return {"deleted": len(rows)}
+
+
+@router.get("/sources/{source_id}")
+async def read_source(source_id: UUID, token=Depends(authenticated)):
+    rows = await database(token, "GET", "refraksi_sources", params={"id": "eq." + str(source_id)})
+    if not rows:
+        raise HTTPException(404, "Sumber tidak ditemukan atau tidak diizinkan.")
+    return {key: value for key, value in rows[0].items() if key != "user_id"}
 
 
 @router.delete("/{kind}/{record_id}")

@@ -8,7 +8,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { Empty } from "./Feedback";
-import { rupiah } from "../utils/format";
+import { sourceRupiah } from "../utils/format";
 export default function DataTable({
   rows,
   kind,
@@ -16,6 +16,7 @@ export default function DataTable({
   onDelete,
   onBulkDelete,
   busy,
+  onSource,
 }) {
   const [search, setSearch] = useState(""),
     [sort, setSort] = useState({ key: "date", direction: -1 }),
@@ -27,12 +28,12 @@ export default function DataTable({
   const columns =
     kind === "sales"
       ? [
-          ["date", "Tanggal"],
+          ["entry_type", "Jenis"],
+          ["date", "Periode"],
           ["product", "Produk"],
           ["quantity", "Jumlah"],
-          ["price", "Harga satuan"],
-          ["unit_cost", "HPP satuan"],
           ["sales_value", "Penjualan"],
+          ["total_hpp", "HPP"],
         ]
       : [
           ["date", "Tanggal"],
@@ -43,7 +44,10 @@ export default function DataTable({
     () =>
       rows
         .filter((row) =>
-          Object.values(row).some((value) =>
+          [
+            ...Object.values(row),
+            ...(kind === "sales" ? [row.is_recap ? "Rekap" : "Transaksi"] : []),
+          ].some((value) =>
             String(value ?? "")
               .toLowerCase()
               .includes(search.toLowerCase()),
@@ -56,36 +60,57 @@ export default function DataTable({
             "unit_cost",
             "sales_value",
             "amount",
+            "total_hpp",
           ].includes(sort.key);
+          if (numeric && (a[sort.key] == null || b[sort.key] == null))
+            return a[sort.key] == null && b[sort.key] == null
+              ? 0
+              : a[sort.key] == null
+                ? 1
+                : -1;
           return (
             (numeric
               ? Number(a[sort.key]) - Number(b[sort.key])
-              : String(a[sort.key]).localeCompare(String(b[sort.key]))) *
-            sort.direction
+              : String(
+                  sort.key === "entry_type"
+                    ? a.is_recap
+                      ? "Rekap"
+                      : "Transaksi"
+                    : a[sort.key],
+                ).localeCompare(
+                  String(
+                    sort.key === "entry_type"
+                      ? b.is_recap
+                        ? "Rekap"
+                        : "Transaksi"
+                      : b[sort.key],
+                  ),
+                )) * sort.direction
           );
         }),
-    [rows, search, sort],
+    [rows, search, sort, kind],
   );
   const count = Math.max(1, Math.ceil(filtered.length / 10)),
     current = Math.min(page, count);
-  const selectedIds = filtered
+  const selectable = filtered.filter((row) => !row.is_recap);
+  const selectedIds = selectable
     .filter((row) => selected.has(row.id))
     .map((row) => row.id);
   const allSelected =
-    filtered.length > 0 && selectedIds.length === filtered.length;
+    selectable.length > 0 && selectedIds.length === selectable.length;
   useEffect(() => {
     if (selectAll.current)
       selectAll.current.indeterminate = selectedIds.length > 0 && !allSelected;
   }, [selectedIds.length, allSelected]);
   function toggleAll() {
     setSelected(
-      allSelected ? new Set() : new Set(filtered.map((row) => row.id)),
+      allSelected ? new Set() : new Set(selectable.map((row) => row.id)),
     );
   }
   return (
     <>
       <div className="relative my-5 max-w-md">
-        <Search size={16} className="absolute left-3 top-3 text-slate-400" />
+        <Search size={16} className="absolute left-3 top-3.5 text-slate-400" />
         <input
           className="w-full pl-9"
           type="search"
@@ -98,13 +123,13 @@ export default function DataTable({
       <div className="mb-4 flex flex-wrap items-center gap-3 text-sm">
         <button
           className="btn-secondary"
-          disabled={busy || !filtered.length}
+          disabled={busy || !selectable.length}
           onClick={toggleAll}
         >
           {allSelected ? "Batalkan pilihan" : "Pilih semua hasil filter"}
         </button>
         <span role="status">
-          {selectedIds.length} dari {filtered.length} baris dipilih (semua
+          {selectedIds.length} dari {selectable.length} baris dipilih (semua
           halaman)
         </span>
         <button
@@ -115,6 +140,12 @@ export default function DataTable({
           <Trash2 size={15} /> Hapus terpilih ({selectedIds.length})
         </button>
       </div>
+      {kind === "sales" && filtered.some((row) => row.is_recap) && (
+        <p className="mb-3 text-xs text-slate-500">
+          Rekap dikelola melalui Riwayat Impor. Pilihan hapus hanya mencakup
+          transaksi.
+        </p>
+      )}
       <div
         className="overflow-x-auto rounded-xl border border-slate-100"
         tabIndex={0}
@@ -130,7 +161,7 @@ export default function DataTable({
                   type="checkbox"
                   aria-label="Pilih semua hasil filter"
                   checked={allSelected}
-                  disabled={busy || !filtered.length}
+                  disabled={busy || !selectable.length}
                   onChange={toggleAll}
                 />
               </th>
@@ -158,20 +189,22 @@ export default function DataTable({
             {filtered.slice((current - 1) * 10, current * 10).map((row) => (
               <tr key={row.id}>
                 <td>
-                  <input
-                    type="checkbox"
-                    aria-label={`Pilih ${kind === "sales" ? row.product : row.description} ${row.date}`}
-                    checked={selected.has(row.id)}
-                    disabled={busy}
-                    onChange={() =>
-                      setSelected((previous) => {
-                        const next = new Set(previous);
-                        if (next.has(row.id)) next.delete(row.id);
-                        else next.add(row.id);
-                        return next;
-                      })
-                    }
-                  />
+                  {!row.is_recap && (
+                    <input
+                      type="checkbox"
+                      aria-label={`Pilih ${kind === "sales" ? row.product : row.description} ${row.date}`}
+                      checked={selected.has(row.id)}
+                      disabled={busy}
+                      onChange={() =>
+                        setSelected((previous) => {
+                          const next = new Set(previous);
+                          if (next.has(row.id)) next.delete(row.id);
+                          else next.add(row.id);
+                          return next;
+                        })
+                      }
+                    />
+                  )}
                 </td>
                 {columns.map(([key]) => (
                   <td
@@ -182,35 +215,60 @@ export default function DataTable({
                         : "whitespace-nowrap"
                     }
                   >
-                    {["price", "unit_cost", "sales_value", "amount"].includes(
-                      key,
-                    )
-                      ? rupiah(row[key])
-                      : row[key]}
+                    {key === "entry_type" ? (
+                      <span
+                        className={`inline-flex rounded-md px-2 py-1 text-xs font-medium ${row.is_recap ? "bg-blue-50 text-blue-700" : "bg-emerald-50 text-accent"}`}
+                      >
+                        {row.is_recap ? "Rekap" : "Transaksi"}
+                      </span>
+                    ) : key === "date" && row.is_recap ? (
+                      `${row.period_start} – ${row.period_end}`
+                    ) : ["sales_value", "total_hpp", "amount"].includes(key) ? (
+                      row[key] == null ? (
+                        "Belum tersedia"
+                      ) : (
+                        sourceRupiah(row[key])
+                      )
+                    ) : (
+                      row[key]
+                    )}
                     {key === "product" && (
                       <small className="mt-1 block text-xs text-slate-400">
-                        {row.location || row.customer || ""}
+                        {row.is_recap
+                          ? `${row.source_sheet} · ${row.location || "Semua lokasi"}`
+                          : row.location || row.customer || ""}
                       </small>
                     )}
                   </td>
                 ))}
                 <td className="whitespace-nowrap">
-                  <button
-                    className="mr-2 rounded-lg bg-emerald-50 p-2 text-accent"
-                    aria-label={`Edit ${kind === "sales" ? row.product : row.description}`}
-                    disabled={busy}
-                    onClick={() => onEdit({ kind, record: row })}
-                  >
-                    <Pencil size={15} />
-                  </button>
-                  <button
-                    className="rounded-lg bg-red-50 p-2 text-red-600"
-                    aria-label={`Hapus ${kind === "sales" ? row.product : row.description}`}
-                    disabled={busy}
-                    onClick={() => onDelete(kind, row.id)}
-                  >
-                    <Trash2 size={15} />
-                  </button>
+                  {row.is_recap ? (
+                    <button
+                      className="btn-secondary"
+                      onClick={() => onSource?.(row.source_id)}
+                    >
+                      Lihat impor
+                    </button>
+                  ) : (
+                    <>
+                      <button
+                        className="mr-2 inline-flex min-h-11 min-w-11 items-center justify-center rounded-xl bg-emerald-50 p-2 text-accent transition-colors hover:bg-emerald-100"
+                        aria-label={`Edit ${kind === "sales" ? row.product : row.description}`}
+                        disabled={busy}
+                        onClick={() => onEdit({ kind, record: row })}
+                      >
+                        <Pencil size={15} />
+                      </button>
+                      <button
+                        className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-xl bg-red-50 p-2 text-red-600 transition-colors hover:bg-red-100"
+                        aria-label={`Hapus ${kind === "sales" ? row.product : row.description}`}
+                        disabled={busy}
+                        onClick={() => onDelete(kind, row.id)}
+                      >
+                        <Trash2 size={15} />
+                      </button>
+                    </>
+                  )}
                 </td>
               </tr>
             ))}

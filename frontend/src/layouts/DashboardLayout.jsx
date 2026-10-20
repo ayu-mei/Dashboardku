@@ -7,11 +7,13 @@ import {
   X,
   LogOut,
   ShieldCheck,
+  Sparkles,
 } from "lucide-react";
 const links = [
   ["dashboard", "Dashboard", LayoutDashboard],
-  ["data", "Data Penjualan", Table2],
+  ["data", "Data Bisnis", Table2],
   ["analysis", "Analisis", ChartNoAxesCombined],
+  ["smart", "Smart Dashboard", Sparkles],
 ];
 export default function DashboardLayout({ page, onPage, onLogout, children }) {
   const [open, setOpen] = useState(false);

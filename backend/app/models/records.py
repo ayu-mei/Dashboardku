@@ -1,7 +1,8 @@
 from datetime import date
 from uuid import UUID
+from typing import Literal
 from decimal import Decimal
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, StrictBool, StrictInt, field_validator
 
 
 class Sale(BaseModel):
@@ -56,3 +57,18 @@ class Filters(BaseModel):
 class BulkDelete(BaseModel):
     model_config = ConfigDict(extra="forbid")
     ids: list[UUID] = Field(min_length=1)
+
+
+class SourceImportOptions(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    year: StrictInt | None = Field(default=None, ge=1, le=9998)
+    month: StrictInt | None = Field(default=None, ge=1, le=12)
+    start: date | None = None
+    end: date | None = None
+    cost_basis: Literal["none", "cost", "tax_cost"] = "none"
+    accept_cached: StrictBool = False
+
+    @field_validator("month", "start", "end", mode="before")
+    @classmethod
+    def empty_optional(cls, value):
+        return None if value == "" else value

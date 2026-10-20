@@ -74,6 +74,7 @@ export default function RecordEditor({ editing, onClose, onSaved }) {
             disabled={busy}
             onClick={onClose}
             aria-label="Tutup formulir"
+            className="icon-btn"
           >
             <X size={18} />
           </button>

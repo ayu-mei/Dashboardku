@@ -57,13 +57,19 @@ async def database(token, method, table, *, params=None, body=None, headers=None
         except httpx.RequestError:
             raise HTTPException(503, "Database belum dapat dihubungi. Coba lagi.")
     if response.status_code >= 400:
+        code = response.json().get("code") if response.content else None
+        if table == "refraksi_sources" and code in {"PGRST205", "42P01"}:
+            from app.services.sources import SourceSchemaMissing
+            raise SourceSchemaMissing()
+        if table == "refraksi_sources" and code in {"23505", "P0001"}:
+            raise HTTPException(409, "Data sudah tersimpan atau beririsan dengan sumber lain. Muat ulang dan periksa sumber utama sebelum impor ulang.")
         if response.status_code in (401, 403):
             raise HTTPException(
                 response.status_code, "Sesi atau izin akses tidak valid."
             )
         if response.status_code == 409:
             raise HTTPException(
-                409, "Data sudah pernah diimpor atau ID sudah digunakan."
+                409, "Data sudah pernah diimpor, beririsan dengan rekap tersimpan, atau ID sudah digunakan."
             )
         raise HTTPException(
             400,
