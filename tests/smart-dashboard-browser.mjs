@@ -253,9 +253,35 @@ try {
     "Pertanyaan berikutnya yang sedang disiapkan",
   );
   await page.unroute(base + "/api/smart/ask?*");
+  const chatLog = page.getByRole("log", { name: "Percakapan AI" });
+  const messageCountBeforeFilter = await chatLog.locator("article").count();
+  const updatedOverview = page.waitForResponse(
+    (response) =>
+      response.url().includes("/api/smart/overview?") &&
+      response.url().includes("month=9") &&
+      response.status() === 200,
+  );
   await page
     .getByRole("button", { name: "Terapkan filter usulan", exact: true })
     .click();
+  await updatedOverview;
+  assert.equal(
+    await chatLog.locator("article").count(),
+    messageCountBeforeFilter,
+    "filter changes preserve existing messages",
+  );
+  assert.equal(
+    await page.getByLabel("Pertanyaan untuk AI").inputValue(),
+    "Pertanyaan berikutnya yang sedang disiapkan",
+    "filter changes preserve drafts",
+  );
+  assert.equal(
+    await page
+      .getByRole("dialog", { name: "Tanya Yuwi", exact: true })
+      .isVisible(),
+    true,
+  );
+
   await page.getByLabel("Pertanyaan untuk AI").fill("Buat laporan penjualan");
   await page.getByLabel("Pertanyaan untuk AI").press("Enter");
   await page
@@ -264,6 +290,7 @@ try {
   const downloaded = page.waitForEvent("download");
   await page
     .getByRole("button", { name: "Unduh jawaban / laporan", exact: true })
+    .last()
     .click();
   assert.equal(
     (await downloaded).suggestedFilename(),

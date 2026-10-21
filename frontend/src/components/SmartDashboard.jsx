@@ -26,6 +26,8 @@ export default function SmartDashboard({
   const chatInput = useRef(null);
   const chatDialog = useRef(null);
   const [sentAt, setSentAt] = useState(null);
+  const [overviewQuery, setOverviewQuery] = useState(null);
+  const [overviewLoading, setOverviewLoading] = useState(true);
   const [overview, setOverview] = useState(null),
     [error, setError] = useState(""),
     [busy, setBusy] = useState(false);
@@ -78,24 +80,30 @@ export default function SmartDashboard({
   }, [question, chatOpen, overview]);
   useEffect(() => {
     const controller = new AbortController();
-    setOverview(null);
-    setMessages([]);
+    setOverviewLoading(true);
     setError("");
-    setBusy(false);
-    request.current?.abort();
     api("/api/smart/overview?" + query, { signal: controller.signal })
       .then((value) => {
-        if (!controller.signal.aborted) setOverview(value);
+        if (!controller.signal.aborted) {
+          setOverview(value);
+          setOverviewQuery(query);
+        }
       })
       .catch((e) => {
         if (!controller.signal.aborted) setError(e.message);
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setOverviewLoading(false);
       });
-    return () => {
-      controller.abort();
+    return () => controller.abort();
+  }, [query]);
+  useEffect(
+    () => () => {
       request.current?.abort();
       request.current = null;
-    };
-  }, [query]);
+    },
+    [],
+  );
 
   useEffect(() => {
     if (chatScroll.current)
@@ -108,7 +116,14 @@ export default function SmartDashboard({
     );
   }
   async function ask(text = question) {
-    if (busy || request.current || !text.trim()) return;
+    if (
+      busy ||
+      request.current ||
+      overviewQuery !== query ||
+      overviewLoading ||
+      !text.trim()
+    )
+      return;
     setChatOpen(true);
     setPendingQuestion(text);
     setQuestion("");
@@ -193,7 +208,7 @@ export default function SmartDashboard({
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
   return (
-    <div className="space-y-5">
+    <div className="space-y-5" aria-busy={overviewLoading}>
       {error && !overview && (
         <p
           role="alert"
@@ -205,6 +220,11 @@ export default function SmartDashboard({
       {!overview && !error && (
         <p role="status" className="muted">
           Memeriksa data bisnis…
+        </p>
+      )}
+      {overview && overviewLoading && (
+        <p role="status" className="muted">
+          Memperbarui data sesuai filter…
         </p>
       )}
       {overview && (
@@ -348,7 +368,11 @@ export default function SmartDashboard({
                 </button>
               </header>
               <div className="yuwi-context">
-                <span>Percakapan Anda dengan Yuwi</span>
+                <span>
+                  {overviewLoading
+                    ? "Memperbarui data…"
+                    : "Percakapan Anda dengan Yuwi"}
+                </span>
                 <button
                   type="button"
                   disabled={busy}
@@ -506,7 +530,11 @@ export default function SmartDashboard({
                     className="yuwi-send"
                     aria-label="Kirim"
                     disabled={
-                      busy || !overview.ai_configured || !question.trim()
+                      busy ||
+                      overviewLoading ||
+                      overviewQuery !== query ||
+                      !overview.ai_configured ||
+                      !question.trim()
                     }
                   >
                     <Send size={18} />

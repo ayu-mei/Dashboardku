@@ -24,7 +24,6 @@ export function useDashboard(
     const controller = new AbortController();
     setLoading(true);
     setError("");
-    setData(null);
     api(endpoint + "?" + query, { signal: controller.signal })
       .then((result) => {
         if (!controller.signal.aborted) setData({ endpoint, result });

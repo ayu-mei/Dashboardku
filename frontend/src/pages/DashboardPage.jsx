@@ -217,7 +217,7 @@ export default function DashboardPage({ page, onPage }) {
                   onEdit={setEditing}
                   onDelete={remove}
                   onBulkDelete={removeSelected}
-                  busy={busy}
+                  busy={busy || model.loading}
                 />
               </section>
               {sourceId && (

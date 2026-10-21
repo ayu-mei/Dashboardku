@@ -61,3 +61,5 @@ Data Bisnis langsung menampilkan tabel penjualan tanpa tab Riwayat Impor. Detail
 Asisten bernama Yuwi. Panel memakai header, slot avatar kosong, gelembung pengguna di kanan/jawaban Yuwi di kiri, waktu pesan, indikator mengetik, dan tombol Chat baru untuk mengosongkan percakapan lokal. Foto belum dipasang. Enter mengirim, Shift+Enter membuat baris baru.
 
 Chat Yuwi memakai dialog modal mengambang di kanan bawah pada desktop dan menyesuaikan layar/keyboard pada ponsel. Tombol Tutup atau Escape menutup dialog dan mengembalikan fokus ke tombol pembuka.
+
+Mengubah atau menerapkan filter memperbarui angka dashboard tanpa menghapus percakapan, draft, atau menutup jendela Yuwi. Jawaban lama menyimpan label filter saat dibuat. Pengiriman baru menunggu data filter terbaru; permintaan yang sudah berjalan tetap memakai filter saat dikirim. Chat baru tetap menjadi tindakan eksplisit untuk mengosongkan percakapan.
