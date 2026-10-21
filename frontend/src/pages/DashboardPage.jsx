@@ -18,7 +18,6 @@ export default function DashboardPage({ page, onPage }) {
     options = useRef({}),
     years = useRef([]);
   const [importing, setImporting] = useState(false);
-  const [dataTab, setDataTab] = useState("sales");
   const [sourceId, setSourceId] = useState(null);
   const [editing, setEditing] = useState(null),
     [busy, setBusy] = useState(false),
@@ -200,73 +199,7 @@ export default function DashboardPage({ page, onPage }) {
             ))}
           {page === "data" && (
             <>
-              <div
-                role="tablist"
-                aria-label="Data Bisnis"
-                className="mb-5 flex gap-1 rounded-xl border border-slate-200 bg-white p-1"
-              >
-                {[
-                  ["sales", "Penjualan"],
-                  ["imports", "Riwayat Impor"],
-                ].map(([id, label], index) => (
-                  <button
-                    key={id}
-                    id={`data-tab-${id}`}
-                    role="tab"
-                    aria-selected={dataTab === id}
-                    aria-controls={`data-panel-${id}`}
-                    tabIndex={dataTab === id ? 0 : -1}
-                    className={`min-h-11 flex-1 rounded-lg px-2 py-2 text-sm font-semibold ${dataTab === id ? "bg-navy text-white" : "text-slate-500 hover:bg-slate-50"}`}
-                    onClick={() => {
-                      setDataTab(id);
-                      if (id === "imports") setSourceId(null);
-                    }}
-                    onKeyDown={(event) => {
-                      const ids = ["sales", "imports"];
-                      const next =
-                        event.key === "ArrowRight"
-                          ? (index + 1) % 2
-                          : event.key === "ArrowLeft"
-                            ? (index + 1) % 2
-                            : event.key === "Home"
-                              ? 0
-                              : event.key === "End"
-                                ? 1
-                                : null;
-                      if (next !== null) {
-                        event.preventDefault();
-                        setDataTab(ids[next]);
-                        document
-                          .getElementById(`data-tab-${ids[next]}`)
-                          ?.focus();
-                      }
-                    }}
-                  >
-                    {label}
-                  </button>
-                ))}
-              </div>
-              {dataTab === "imports" && (
-                <div
-                  role="tabpanel"
-                  id="data-panel-imports"
-                  aria-labelledby="data-tab-imports"
-                >
-                  <SourceDataPanel
-                    initialSourceId={sourceId}
-                    sources={model.data.sources}
-                    ready={model.data.source_storage_ready}
-                    reload={model.reload}
-                  />
-                </div>
-              )}
-              <section
-                role="tabpanel"
-                id="data-panel-sales"
-                aria-labelledby="data-tab-sales"
-                hidden={dataTab !== "sales"}
-                className="panel my-5"
-              >
+              <section className="panel my-5">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
                     <h2 className="font-semibold">Penjualan</h2>
@@ -280,7 +213,6 @@ export default function DashboardPage({ page, onPage }) {
                   kind="sales"
                   onSource={(id) => {
                     setSourceId(id);
-                    setDataTab("imports");
                   }}
                   onEdit={setEditing}
                   onDelete={remove}
@@ -288,6 +220,24 @@ export default function DashboardPage({ page, onPage }) {
                   busy={busy}
                 />
               </section>
+              {sourceId && (
+                <section className="mt-5" aria-label="Detail sumber penjualan">
+                  <button
+                    className="btn-secondary mb-3"
+                    onClick={() => setSourceId(null)}
+                  >
+                    Tutup detail sumber
+                  </button>
+                  <SourceDataPanel
+                    initialSourceId={sourceId}
+                    sources={model.data.sources.filter(
+                      (source) => source.id === sourceId,
+                    )}
+                    ready={model.data.source_storage_ready}
+                    reload={model.reload}
+                  />
+                </section>
+              )}
             </>
           )}
         </>

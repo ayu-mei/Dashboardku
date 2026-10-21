@@ -142,7 +142,7 @@ export default function DataTable({
       </div>
       {kind === "sales" && filtered.some((row) => row.is_recap) && (
         <p className="mb-3 text-xs text-slate-500">
-          Rekap dikelola melalui Riwayat Impor. Pilihan hapus hanya mencakup
+          Rekap dikelola melalui Lihat sumber. Pilihan hapus hanya mencakup
           transaksi.
         </p>
       )}
@@ -247,7 +247,7 @@ export default function DataTable({
                       className="btn-secondary"
                       onClick={() => onSource?.(row.source_id)}
                     >
-                      Lihat impor
+                      Lihat sumber
                     </button>
                   ) : (
                     <>

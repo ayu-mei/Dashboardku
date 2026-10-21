@@ -251,7 +251,6 @@ try {
     await page.getByRole("tab", { name: "Biaya", exact: true }).count(),
     0,
   );
-  await page.getByRole("tab", { name: "Penjualan", exact: true }).click();
   await page.setViewportSize({ width: 1440, height: 1000 });
   await page
     .getByRole("button", { name: "Pilih semua hasil filter", exact: true })
@@ -277,7 +276,7 @@ try {
     1,
   );
   await combined
-    .getByRole("button", { name: "Lihat impor", exact: true })
+    .getByRole("button", { name: "Lihat sumber", exact: true })
     .click();
   await page
     .getByRole("heading", {
@@ -290,7 +289,6 @@ try {
     0,
   );
 
-  await page.getByRole("tab", { name: "Penjualan", exact: true }).click();
   await choose("master");
   await page.getByRole("button", { name: "Periksa Data", exact: true }).click();
   await page
@@ -304,7 +302,10 @@ try {
     0,
   );
   await page.getByRole("button", { name: "Batal", exact: true }).click();
-  await page.getByRole("tab", { name: "Riwayat Impor", exact: true }).click();
+  assert.equal(
+    await page.getByRole("tab", { name: "Riwayat Impor", exact: true }).count(),
+    0,
+  );
   const sourcePanel = page.getByRole("region", { name: "Data sumber impor" });
   // Capture visible source management and importer at a small viewport too.
   await mkdir("test-artifacts/source-import", { recursive: true });

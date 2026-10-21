@@ -55,3 +55,5 @@ node tests/smart-dashboard-browser.mjs
 Tes browser memakai identitas, penyimpanan, dan provider AI tiruan yang terisolasi. Perhitungan dan endpoint Smart Dashboard memakai implementasi aplikasi asli. Tidak mengimpor data atau mengubah transaksi Supabase produksi.
 
 Dashboard berfokus pada data Excel. Tab Biaya, angka biaya operasional dan laba bersih tidak ditampilkan. Ekspor tidak menyertakan sheet Expenses maupun metrik laba bersih. Data biaya lama tidak dihapus.
+
+Data Bisnis langsung menampilkan tabel penjualan tanpa tab Riwayat Impor. Detail sumber dapat dibuka dari baris rekap melalui Lihat sumber; hanya sumber terkait yang ditampilkan. Import Excel tetap tersedia.
