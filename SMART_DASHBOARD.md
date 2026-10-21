@@ -2,7 +2,7 @@
 
 Buka menu **Smart Dashboard** setelah login. Filter periode, produk, kategori, dan lokasi di bagian atas menjadi cakupan pertanyaan, laporan, peringatan.
 
-Tampilan memakai empat angka utama: penjualan, HPP, laba kotor, dan margin kotor dan grafik dan panel **Tanya AI**. Dashboard menempatkan grafik dan panel Tanya AI berdampingan di desktop; panel AI tetap terlihat saat halaman digulir. Di ponsel, tombol **Tanya AI** membuka panel percakapan yang dapat ditutup tanpa kehilangan posisi grafik. Ringkasan, rekomendasi dan laporan dapat diminta langsung melalui chat AI. Panel hanya menampilkan percakapan dan kolom pesan, tanpa tombol tindakan atau contoh pertanyaan. Filter tanggal, produk, kategori dan lokasi tersedia di **Filter lainnya**; filter aktif tetap terlihat dan bisa dihapus satu per satu. HPP dan margin kotor tampil pada ringkasan; penjelasan perhitungan dapat dibuka sesuai kebutuhan. Peringatan HPP yang belum lengkap tetap ditampilkan.
+Tampilan memakai empat angka utama: penjualan, HPP, laba kotor, dan margin kotor dan grafik dan panel **Tanya AI**. Dashboard menempatkan grafik dan panel Tanya AI berdampingan di desktop; panel AI tetap terlihat saat halaman digulir. Di ponsel, tombol **Tanya AI** membuka panel percakapan yang dapat ditutup tanpa kehilangan posisi grafik. Ringkasan, rekomendasi dan laporan dapat diminta langsung melalui chat AI. Panel menampilkan gelembung pesan pengguna di kanan dan jawaban AI di kiri, beserta kolom pesan, tanpa tombol tindakan atau contoh pertanyaan. Filter tanggal, produk, kategori dan lokasi tersedia di **Filter lainnya**; filter aktif tetap terlihat dan bisa dihapus satu per satu. HPP dan margin kotor tampil pada ringkasan; penjelasan perhitungan dapat dibuka sesuai kebutuhan. Peringatan HPP yang belum lengkap tetap ditampilkan.
 
 ## Kemampuan
 
@@ -28,7 +28,7 @@ Account ID tersedia di Workers AI → Use REST API. Token memerlukan izin Worker
 
 ## Data dan batas
 
-AI dibatasi pada data dan fitur dashboard. Backend menyaring pertanyaan di luar cakupan dan permintaan mengganti instruksi sebelum membaca data akun. Respons model juga harus memiliki penanda cakupan yang sesuai; respons di luar cakupan diganti dengan panduan singkat tentang dashboard. Pertanyaan yang tidak jelas perlu menyebut data atau fitur yang ingin dibahas. Header Excel dan teks sumber diperlakukan sebagai data, bukan instruksi.
+AI dibatasi pada data dan fitur dashboard. AI menilai relevansi berdasarkan maksud pertanyaan, konteks dashboard, dan bukti data; tidak ada daftar kata kunci untuk menerima atau menolak pertanyaan. Rujukan seperti “bagan tersebut” mengacu pada grafik dashboard. Pertanyaan ambigu dapat dibalas dengan klarifikasi. Respons model harus memiliki penanda cakupan yang sesuai; respons di luar cakupan diganti dengan panduan singkat tentang dashboard. Header Excel dan teks sumber diperlakukan sebagai data, bukan instruksi.
 
 Semua data dibaca memakai JWT pengguna dan aturan RLS Supabase yang sudah ada. Model menerima ringkasan bisnis, nama produk/lokasi/supplier/sheet dan pertanyaan pengguna. Nama pelanggan, ID pengguna, JWT dan token Cloudflare tidak dimasukkan ke prompt. Bantuan impor mengirim nama sheet, header, jenis sheet dan masalah pemeriksaan, bukan file asli.
 

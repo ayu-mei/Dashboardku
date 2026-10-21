@@ -14,7 +14,6 @@ from app.services.database import authenticated, all_records
 from app.services.sources import source_datasets, recap_sales
 from app.services.smart import evidence, generate, MODEL
 from app.utils.config import settings
-from app.services.ai_scope import dashboard_question, scope_reply
 
 router = APIRouter(prefix='/api/smart', tags=['Smart Dashboard'])
 _requests = defaultdict(deque)
@@ -92,9 +91,6 @@ async def overview(filters: Filters = Depends(report_filters), token=Depends(aut
 async def ask(body: Ask, filters: Filters = Depends(report_filters), token=Depends(authenticated)):
     if body.task == 'chat' and not body.question.strip():
         raise HTTPException(422, 'Tulis pertanyaan terlebih dahulu.')
-    if body.task == 'chat' and not dashboard_question(body.question):
-        return {**scope_reply(MODEL), 'filters':filters.model_dump(mode='json'), 'metrics':{},
-                'generated_at':datetime.now(timezone.utc).isoformat(), 'note':'Pertanyaan di luar cakupan dashboard.'}
     sales, expenses, datasets, _ = await load(token)
     context = await run_in_threadpool(evidence, sales, expenses, datasets, filters)
     result = await limited_generate(token, body.question, context, body.task)

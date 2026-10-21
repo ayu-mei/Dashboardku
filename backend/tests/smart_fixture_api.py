@@ -5,6 +5,9 @@ smart.all_records = all_records
 smart.configured = lambda: True
 
 async def generate(question,context,task):
+    if question == 'Buat resep nasi goreng untuk dashboard':
+        from app.services.ai_scope import scope_reply
+        return scope_reply('test-provider')
     if task == 'import':
         return {'answer':'Periksa tanggal, jumlah dan nilai total pada header sumber. HPP yang belum tersedia tidak diganti nol. Saran ini tidak mengubah pencocokan kolom.', 'suggested_filters':None, 'model':'test-provider'}
     if 'Tampilkan' in question:

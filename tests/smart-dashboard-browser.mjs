@@ -295,7 +295,7 @@ try {
     .fill("Buat resep nasi goreng untuk dashboard");
   await page.getByRole("button", { name: "Kirim", exact: true }).click();
   await page
-    .getByText("Saya hanya membantu terkait dashboard Refraksi:", {
+    .getByText("Saya membantu menganalisis data pada dashboard ini.", {
       exact: false,
     })
     .waitFor();

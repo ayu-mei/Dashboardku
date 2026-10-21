@@ -317,59 +317,78 @@ export default function SmartDashboard({
                   </p>
                 )}
                 {messages.map((m, i) => (
-                  <article
-                    key={i}
-                    className="rounded-xl border border-slate-200 p-3"
-                  >
-                    <p className="font-semibold text-navy">{m.question}</p>
-                    <AIAnswer className="mt-3">{m.answer}</AIAnswer>
-                    <p className="muted mt-4 text-xs">
-                      {filterSummary(m.filters)} ·{" "}
-                      {new Date(m.generated_at).toLocaleString("id-ID")}
-                    </p>
-                    {m.suggested_filters &&
-                      Object.keys(m.suggested_filters).length > 0 && (
-                        <div className="mt-4 rounded-lg bg-emerald-50 p-3">
-                          <p className="text-sm">
-                            Usulan filter:{" "}
-                            {filterSummary({
-                              ...m.filters,
-                              ...m.suggested_filters,
-                            })}
-                          </p>
-                          <button
-                            className="btn mt-3"
-                            onClick={() => apply(m.suggested_filters)}
-                          >
-                            Terapkan filter usulan
-                          </button>
-                        </div>
-                      )}
-                    <button
-                      className="btn-secondary mt-4"
-                      onClick={() => download(m)}
-                    >
-                      <Download size={14} /> Unduh jawaban / laporan
-                    </button>
+                  <article key={i} className="space-y-3">
+                    <div className="ml-auto max-w-[90%] rounded-2xl rounded-tr-sm bg-navy px-4 py-3 text-white">
+                      <p className="mb-1 text-[10px] font-semibold text-slate-300">
+                        Anda
+                      </p>
+                      <p className="whitespace-pre-wrap break-words text-sm leading-6">
+                        {m.question}
+                      </p>
+                    </div>
+                    <div className="mr-auto min-w-0 max-w-full rounded-2xl rounded-tl-sm border border-slate-100 bg-slate-50 p-4">
+                      <p className="mb-2 flex items-center gap-1.5 text-xs font-semibold text-accent">
+                        <Sparkles size={13} /> AI Refraksi
+                      </p>
+                      <AIAnswer>{m.answer}</AIAnswer>
+                      <p className="muted mt-3 text-[10px]">
+                        {filterSummary(m.filters)} ·{" "}
+                        {new Date(m.generated_at).toLocaleString("id-ID")}
+                      </p>
+                      {m.suggested_filters &&
+                        Object.keys(m.suggested_filters).length > 0 && (
+                          <div className="mt-4 rounded-lg bg-emerald-50 p-3">
+                            <p className="text-sm">
+                              Usulan filter:{" "}
+                              {filterSummary({
+                                ...m.filters,
+                                ...m.suggested_filters,
+                              })}
+                            </p>
+                            <button
+                              className="btn mt-3"
+                              onClick={() => apply(m.suggested_filters)}
+                            >
+                              Terapkan filter usulan
+                            </button>
+                          </div>
+                        )}
+                      <button
+                        className="mt-3 inline-flex min-h-9 items-center gap-1.5 text-xs text-slate-500 hover:text-navy"
+                        onClick={() => download(m)}
+                      >
+                        <Download size={14} /> Unduh jawaban / laporan
+                      </button>
+                    </div>
                   </article>
                 ))}
                 {busy && (
-                  <p role="status" className="muted">
-                    <strong className="mb-2 block text-slate-700">
-                      {pendingQuestion}
-                    </strong>
-                    <LoaderCircle
-                      size={14}
-                      className="mr-2 inline animate-spin"
-                    />{" "}
-                    AI sedang memproses…{" "}
-                    <button
-                      className="underline"
-                      onClick={() => request.current?.abort()}
+                  <div className="space-y-3">
+                    <div className="ml-auto max-w-[90%] rounded-2xl rounded-tr-sm bg-navy px-4 py-3 text-white">
+                      <p className="mb-1 text-[10px] font-semibold text-slate-300">
+                        Anda
+                      </p>
+                      <p className="whitespace-pre-wrap break-words text-sm leading-6">
+                        {pendingQuestion}
+                      </p>
+                    </div>
+                    <p
+                      role="status"
+                      className="mr-auto rounded-2xl rounded-tl-sm bg-slate-50 p-4 text-xs text-slate-500"
                     >
-                      Hentikan
-                    </button>
-                  </p>
+                      <LoaderCircle
+                        size={14}
+                        className="mr-2 inline animate-spin"
+                      />{" "}
+                      AI sedang menganalisis…{" "}
+                      <button
+                        className="underline"
+                        onClick={() => request.current?.abort()}
+                      >
+                        Hentikan
+                      </button>
+                    </p>
+                  </div>
                 )}
                 {error && (
                   <p
