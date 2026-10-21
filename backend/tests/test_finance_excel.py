@@ -174,7 +174,8 @@ def test_excel_export_is_not_formula_injection():
         Filters(),
     )
     wb = load_workbook(export_excel(data), data_only=False)
-    assert wb.sheetnames == ["Sales", "Expenses", "Summary"]
+    assert wb.sheetnames == ["Sales", "Summary"]
+    assert not {"operational", "net", "net_margin"}.intersection(next(wb["Summary"].values))
     assert wb["Sales"]["D2"].value == "=1+1"
     assert wb["Sales"]["D2"].data_type == "s"
     wb.close()

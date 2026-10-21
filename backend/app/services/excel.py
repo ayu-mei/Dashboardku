@@ -230,6 +230,7 @@ def normalize_excel(content, sheet, header_row, mapping, owner="local"):
 
 
 def export_excel(data):
+    data = {**data, "metrics": {key: value for key, value in data["metrics"].items() if key not in {"operational", "net", "net_margin"}}, "note": "Angka mengikuti data sumber. Laba kotor = penjualan dikurangi HPP; HPP yang belum tersedia tidak dianggap nol."}
     wb = Workbook()
     wb.remove(wb.active)
     groups = [
@@ -251,7 +252,6 @@ def export_excel(data):
             ],
         ),
         ("Recaps", [r for r in data["sales"] if r.get("is_recap")], ["source_sheet", "sku", "product", "category", "location", "period_start", "period_end", "quantity", "sales_value", "total_hpp", "cost_basis"]),
-        ("Expenses", data["expenses"], ["id", "date", "description", "amount"]),
         ("Master", data.get("master_exports", []), ["sku", "upc", "product", "category", "cost_bali", "cost_lombok", "cost_makassar"]),
         ("Rafaksi", data.get("claim_exports", []), ["supplier_code", "supplier_name", "period_start", "period_end", "quantity", "amount"]),
         ("Summary", [{**data["metrics"], "missing_hpp_count": data.get("missing_hpp_count", 0), "note": data.get("note", "")}], list(data["metrics"]) + ["missing_hpp_count", "note"]),

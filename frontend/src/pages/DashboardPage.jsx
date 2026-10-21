@@ -207,7 +207,6 @@ export default function DashboardPage({ page, onPage }) {
               >
                 {[
                   ["sales", "Penjualan"],
-                  ["expenses", "Biaya"],
                   ["imports", "Riwayat Impor"],
                 ].map(([id, label], index) => (
                   <button
@@ -223,16 +222,16 @@ export default function DashboardPage({ page, onPage }) {
                       if (id === "imports") setSourceId(null);
                     }}
                     onKeyDown={(event) => {
-                      const ids = ["sales", "expenses", "imports"];
+                      const ids = ["sales", "imports"];
                       const next =
                         event.key === "ArrowRight"
-                          ? (index + 1) % 3
+                          ? (index + 1) % 2
                           : event.key === "ArrowLeft"
-                            ? (index + 2) % 3
+                            ? (index + 1) % 2
                             : event.key === "Home"
                               ? 0
                               : event.key === "End"
-                                ? 2
+                                ? 1
                                 : null;
                       if (next !== null) {
                         event.preventDefault();
@@ -289,38 +288,6 @@ export default function DashboardPage({ page, onPage }) {
                   busy={busy}
                 />
               </section>
-              <section
-                role="tabpanel"
-                id="data-panel-expenses"
-                aria-labelledby="data-tab-expenses"
-                hidden={dataTab !== "expenses"}
-                className="panel my-5"
-              >
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <div>
-                    <h2 className="font-semibold">Biaya operasional</h2>
-                    <p className="muted mt-1">
-                      Catat biaya sekali saja, terpisah dari HPP.
-                    </p>
-                  </div>
-                  <button
-                    className="btn-secondary"
-                    onClick={() => setEditing({ kind: "expenses" })}
-                    disabled={busy}
-                  >
-                    <Plus size={15} />
-                    Tambah biaya
-                  </button>
-                </div>
-                <DataTable
-                  rows={model.data.expenses}
-                  kind="expenses"
-                  onEdit={setEditing}
-                  onDelete={remove}
-                  onBulkDelete={removeSelected}
-                  busy={busy}
-                />
-              </section>
             </>
           )}
         </>
@@ -332,13 +299,16 @@ export default function DashboardPage({ page, onPage }) {
           </summary>
           <div className="mt-2 space-y-2 rounded-xl border border-slate-200 bg-white p-4 leading-relaxed">
             <p>
-              Laba kotor = penjualan − HPP. Laba bersih = laba kotor − biaya
-              operasional.
+              Laba kotor = penjualan − HPP. Margin kotor = laba kotor ÷
+              penjualan × 100%.
             </p>
-            <p>{model.data.note}</p>
             <p>
-              Margin tidak tersedia saat penjualan nol. Pajak, bunga, dan biaya
-              yang belum dicatat belum mengurangi laba.
+              Rekap hanya ditampilkan jika seluruh periodenya masuk filter
+              tanggal; tidak dibagi menjadi transaksi harian.
+            </p>
+            <p>
+              Margin tidak tersedia saat penjualan nol. HPP dan laba kotor hanya
+              tersedia jika data sumber lengkap.
             </p>
           </div>
         </details>

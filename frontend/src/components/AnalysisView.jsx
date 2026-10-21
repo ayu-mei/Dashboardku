@@ -289,7 +289,10 @@ export default function AnalysisView({ data }) {
             </button>
           </div>
         </div>
-        <p className="mt-4 text-xs text-slate-500">{data.note}</p>
+        <p className="mt-4 text-xs text-slate-500">
+          Laba kotor dihitung dari penjualan dikurangi HPP yang tersedia pada
+          sumber. Rekap hanya dihitung jika seluruh periodenya tercakup filter.
+        </p>
       </section>
       <section className="panel my-5">
         <h2 className="font-semibold">Top &amp; Bottom Performance</h2>

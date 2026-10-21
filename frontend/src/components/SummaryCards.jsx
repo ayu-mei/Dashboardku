@@ -1,10 +1,10 @@
-import { Banknote, TrendingUp, Wallet, Receipt } from "lucide-react";
+import { Banknote, TrendingUp, Receipt, Percent } from "lucide-react";
 import { rupiah, percent } from "../utils/format";
 const cards = [
   ["Penjualan", "sales", Banknote],
   ["Laba Kotor", "gross", TrendingUp],
-  ["Biaya Operasional", "operational", Receipt],
-  ["Laba Bersih", "net", Wallet],
+  ["Total HPP", "hpp", Receipt],
+  ["Margin Kotor", "gross_margin", Percent],
 ];
 export default function SummaryCards({ metrics, missingHppCount }) {
   return (
@@ -26,6 +26,8 @@ export default function SummaryCards({ metrics, missingHppCount }) {
             >
               {metrics[key] == null ? (
                 <span className="text-sm font-medium">HPP belum lengkap</span>
+              ) : key === "gross_margin" ? (
+                percent(metrics[key])
               ) : (
                 rupiah(metrics[key])
               )}
@@ -41,29 +43,6 @@ export default function SummaryCards({ metrics, missingHppCount }) {
           HPP belum lengkap pada {missingHppCount} baris. Laba belum tersedia.
         </p>
       )}
-      <details className="mt-3 text-xs text-slate-500">
-        <summary className="min-h-9 cursor-pointer py-2 font-medium">
-          HPP dan margin
-        </summary>
-        <dl className="grid grid-cols-1 gap-3 rounded-xl border border-slate-200 bg-white p-4 sm:grid-cols-3">
-          {[
-            ["Total HPP", "hpp"],
-            ["Margin Kotor", "gross_margin"],
-            ["Margin Bersih", "net_margin"],
-          ].map(([label, key]) => (
-            <div key={key}>
-              <dt>{label}</dt>
-              <dd className="mt-1 font-semibold text-slate-700">
-                {metrics[key] == null
-                  ? "Belum tersedia"
-                  : key.includes("margin")
-                    ? percent(metrics[key])
-                    : rupiah(metrics[key])}
-              </dd>
-            </div>
-          ))}
-        </dl>
-      </details>
     </section>
   );
 }

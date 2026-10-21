@@ -164,10 +164,12 @@ try {
     .getByRole("button", { name: "Konfirmasi Import 1 baris", exact: true })
     .click();
   await page.getByRole("dialog").waitFor({ state: "hidden" });
-  await page.getByRole("button", { name: "Dashboard", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Smart Dashboard", exact: true })
+    .click();
   const summary = page.getByRole("region", { name: "Ringkasan keuangan" });
   await page
-    .getByRole("heading", { name: "Dashboard Penjualan", exact: true })
+    .getByRole("heading", { name: "Smart Dashboard", exact: true })
     .waitFor();
   await page
     .getByRole("status")
@@ -245,10 +247,10 @@ try {
     ),
     "combined sales overflow on mobile",
   );
-  await page.getByRole("tab", { name: "Biaya", exact: true }).click();
-  await page
-    .getByRole("heading", { name: "Biaya operasional", exact: true })
-    .waitFor();
+  assert.equal(
+    await page.getByRole("tab", { name: "Biaya", exact: true }).count(),
+    0,
+  );
   await page.getByRole("tab", { name: "Penjualan", exact: true }).click();
   await page.setViewportSize({ width: 1440, height: 1000 });
   await page
@@ -283,11 +285,11 @@ try {
       exact: true,
     })
     .waitFor();
-  await page.getByRole("tab", { name: "Biaya", exact: true }).click();
-  await page
-    .getByRole("heading", { name: "Biaya operasional", exact: true })
-    .waitFor();
-  assert.equal(await combined.isVisible(), false);
+  assert.equal(
+    await page.getByRole("tab", { name: "Biaya", exact: true }).count(),
+    0,
+  );
+
   await page.getByRole("tab", { name: "Penjualan", exact: true }).click();
   await choose("master");
   await page.getByRole("button", { name: "Periksa Data", exact: true }).click();

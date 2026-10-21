@@ -2,7 +2,7 @@
 
 Buka menu **Smart Dashboard** setelah login. Filter periode, produk, kategori, dan lokasi di bagian atas menjadi cakupan pertanyaan, laporan, peringatan.
 
-Tampilan memakai empat angka utama dan grafik dan panel **Tanya AI**. Dashboard menempatkan grafik dan panel Tanya AI berdampingan di desktop; panel AI tetap terlihat saat halaman digulir. Di ponsel, tombol **Tanya AI** membuka panel percakapan yang dapat ditutup tanpa kehilangan posisi grafik. Tombol Ringkasan, Rekomendasi dan Laporan menampilkan status proses serta hasil langsung di panel AI. Filter tanggal, produk, kategori dan lokasi tersedia di **Filter lainnya**; filter aktif tetap terlihat dan bisa dihapus satu per satu. HPP/margin dan penjelasan perhitungan dapat dibuka sesuai kebutuhan. Peringatan HPP yang belum lengkap tetap ditampilkan.
+Tampilan memakai empat angka utama: penjualan, HPP, laba kotor, dan margin kotor dan grafik dan panel **Tanya AI**. Dashboard menempatkan grafik dan panel Tanya AI berdampingan di desktop; panel AI tetap terlihat saat halaman digulir. Di ponsel, tombol **Tanya AI** membuka panel percakapan yang dapat ditutup tanpa kehilangan posisi grafik. Tombol Ringkasan, Rekomendasi dan Laporan menampilkan status proses serta hasil langsung di panel AI. Filter tanggal, produk, kategori dan lokasi tersedia di **Filter lainnya**; filter aktif tetap terlihat dan bisa dihapus satu per satu. HPP dan margin kotor tampil pada ringkasan; penjelasan perhitungan dapat dibuka sesuai kebutuhan. Peringatan HPP yang belum lengkap tetap ditampilkan.
 
 ## Kemampuan
 
@@ -53,3 +53,5 @@ node tests/smart-dashboard-browser.mjs
 ```
 
 Tes browser memakai identitas, penyimpanan, dan provider AI tiruan yang terisolasi. Perhitungan dan endpoint Smart Dashboard memakai implementasi aplikasi asli. Tidak mengimpor data atau mengubah transaksi Supabase produksi.
+
+Dashboard berfokus pada data Excel. Tab Biaya, angka biaya operasional dan laba bersih tidak ditampilkan. Ekspor tidak menyertakan sheet Expenses maupun metrik laba bersih. Data biaya lama tidak dihapus.

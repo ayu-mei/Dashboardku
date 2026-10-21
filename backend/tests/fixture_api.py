@@ -49,6 +49,8 @@ async def database(token, method, table, *, body=None, params=None, **kwargs):
 
 app.dependency_overrides[authenticated] = test_auth
 dashboard.all_records = all_records
+from app.routes import smart
+smart.all_records = all_records
 dashboard.database = database
 uploads.database = database
 sources.database = database

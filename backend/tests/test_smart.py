@@ -17,9 +17,10 @@ def test_evidence_missing_hpp_and_no_customer_data():
     rows = [sale(is_recap=True, sales_value='150', total_hpp=None, period_start='2026-09-01',period_end='2026-09-30')]
     result = evidence(rows, [], [], Filters(year=2026,month=9))
     assert result['metrics']['sales'] == '150'
-    assert result['metrics']['net'] is None
+    assert result['metrics']['gross'] is None
+    assert 'net' not in result['metrics']
+    assert 'operational' not in result['metrics']
     assert result['data_coverage']['months_with_records'] == ['2026-09']
-    assert result['data_coverage']['expense_record_count'] == 0
     assert any(a['code']=='missing_hpp' for a in result['alerts'])
     assert 'PRIVATE CUSTOMER' not in str(result)
     assert 'private-owner' not in str(result)

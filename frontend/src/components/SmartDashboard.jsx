@@ -482,8 +482,7 @@ export default function SmartDashboard({
           </div>
           <p className="text-xs text-slate-500">
             Diperiksa {new Date(overview.generated_at).toLocaleString("id-ID")}{" "}
-            · {overview.rows.sales} baris penjualan · {overview.rows.expenses}{" "}
-            baris biaya.
+            · {overview.rows.sales} baris penjualan.
           </p>
         </>
       )}
