@@ -171,6 +171,30 @@ try {
     .getByRole("log", { name: "Percakapan AI" })
     .locator("article")
     .count();
+  await chatInput.fill("Pesan singkat");
+  const shortInputHeight = (await chatInput.boundingBox()).height;
+  assert.ok(
+    shortInputHeight <= 46,
+    "short messages use a compact one-line composer",
+  );
+  await chatInput.fill(
+    "Baris pertama\nBaris kedua\nBaris ketiga\nBaris keempat",
+  );
+  assert.ok(
+    (await chatInput.boundingBox()).height > shortInputHeight,
+    "multiline messages expand the composer",
+  );
+  await chatInput.fill(Array(20).fill("Pesan panjang").join("\n"));
+  assert.ok(
+    (await chatInput.boundingBox()).height <= 120,
+    "composer height is capped",
+  );
+  await chatInput.fill("");
+  assert.equal(
+    (await chatInput.boundingBox()).height,
+    shortInputHeight,
+    "clearing the draft shrinks the composer",
+  );
   await chatInput.fill("Bandingkan penjualan");
   await chatInput.press("Shift+Enter");
   assert.equal(await chatInput.inputValue(), "Bandingkan penjualan\n");

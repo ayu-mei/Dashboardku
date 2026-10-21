@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import {
   Sparkles,
   Send,
@@ -31,6 +31,19 @@ export default function SmartDashboard({
   const [messages, setMessages] = useState([]),
     [question, setQuestion] = useState("");
   const request = useRef(null);
+  useLayoutEffect(() => {
+    const resize = () => {
+      const input = chatInput.current;
+      if (!input || !input.clientWidth) return;
+      input.style.height = "auto";
+      const height = Math.min(120, Math.max(44, input.scrollHeight));
+      input.style.height = `${height}px`;
+      input.style.overflowY = input.scrollHeight > 120 ? "auto" : "hidden";
+    };
+    resize();
+    window.addEventListener("resize", resize);
+    return () => window.removeEventListener("resize", resize);
+  }, [question, chatOpen, overview]);
   useEffect(() => {
     const controller = new AbortController();
     setOverview(null);
@@ -454,7 +467,7 @@ export default function SmartDashboard({
                     <span className="sr-only">Pertanyaan untuk AI</span>
                     <textarea
                       ref={chatInput}
-                      rows={2}
+                      rows={1}
                       maxLength={1500}
                       value={question}
                       onChange={(e) => setQuestion(e.target.value)}
