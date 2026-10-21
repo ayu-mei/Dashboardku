@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { api } from "../services/api";
 import SalesCharts from "./SalesCharts";
+import AIAnswer from "./AIAnswer";
 import SummaryCards from "./SummaryCards";
 import { sourceRupiah, monthLabel, filterSummary } from "../utils/format";
 
@@ -470,9 +471,7 @@ export default function SmartDashboard({
                     className="rounded-xl border border-slate-200 p-3"
                   >
                     <p className="font-semibold text-navy">{m.question}</p>
-                    <div className="mt-3 whitespace-pre-wrap break-words text-sm leading-7 text-slate-700">
-                      {m.answer}
-                    </div>
+                    <AIAnswer className="mt-3">{m.answer}</AIAnswer>
                     <p className="muted mt-4 text-xs">
                       {filterSummary(m.filters)} ·{" "}
                       {new Date(m.generated_at).toLocaleString("id-ID")}

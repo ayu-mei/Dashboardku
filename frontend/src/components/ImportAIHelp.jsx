@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Sparkles } from "lucide-react";
 import { api } from "../services/api";
+import AIAnswer from "./AIAnswer";
 export default function ImportAIHelp({ profile, preview }) {
   const [answer, setAnswer] = useState(""),
     [error, setError] = useState(""),
@@ -79,11 +80,7 @@ export default function ImportAIHelp({ profile, preview }) {
           {error}
         </p>
       )}
-      {answer && (
-        <p className="mt-4 whitespace-pre-wrap break-words text-sm leading-7 text-slate-700">
-          {answer}
-        </p>
-      )}
+      {answer && <AIAnswer className="mt-4">{answer}</AIAnswer>}
     </section>
   );
 }

@@ -84,9 +84,21 @@ try {
   await page.getByLabel("Email", { exact: true }).fill("test@example.invalid");
   await page.getByLabel("Password", { exact: true }).fill("test-password");
   await page.getByRole("button", { name: "Masuk", exact: true }).click();
-  await page
+  const navigation = page.getByRole("navigation", { name: "Navigasi utama" });
+  await navigation
     .getByRole("button", { name: "Smart Dashboard", exact: true })
-    .click();
+    .waitFor();
+  assert.deepEqual(await navigation.getByRole("button").allTextContents(), [
+    "Smart Dashboard",
+    "Data Bisnis",
+    "Analisis",
+  ]);
+  assert.equal(
+    await navigation
+      .getByRole("button", { name: "Smart Dashboard", exact: true })
+      .getAttribute("aria-current"),
+    "page",
+  );
   await page.getByRole("tab", { name: "Ringkasan", exact: true }).waitFor();
   const yearSelect = page.getByLabel("Tahun", { exact: true });
   await yearSelect.click();

@@ -3,8 +3,6 @@ import { Download, Plus, RefreshCw, Upload } from "lucide-react";
 import { useDashboard } from "../hooks/useDashboard";
 import { api, downloadReport } from "../services/api";
 import DashboardFilters from "../components/DashboardFilters";
-import SummaryCards from "../components/SummaryCards";
-import SalesCharts from "../components/SalesCharts";
 import DataTable from "../components/DataTable";
 import ExcelUpload from "../components/ExcelUpload";
 import AnalysisView from "../components/AnalysisView";
@@ -96,10 +94,9 @@ export default function DashboardPage({ page, onPage }) {
     }
   }
   const title = {
-    dashboard: "Dashboard Penjualan",
+    dashboard: "Smart Dashboard",
     data: "Data Bisnis",
     analysis: "Analisis Penjualan",
-    smart: "Smart Dashboard",
   }[page];
   return (
     <>
@@ -111,7 +108,6 @@ export default function DashboardPage({ page, onPage }) {
                 dashboard: "RINGKASAN BISNIS",
                 data: "KELOLA DATA",
                 analysis: "ANALISIS PERFORMA",
-                smart: "ASISTEN BISNIS",
               }[page]
             }
           </p>
@@ -121,11 +117,10 @@ export default function DashboardPage({ page, onPage }) {
           <p className="muted mt-2">
             {
               {
-                dashboard: "Pantau kondisi penjualan dan laba bisnis Anda.",
+                dashboard: "Pantau bisnis dan tentukan langkah berikutnya.",
                 data: "Masukkan, periksa, dan kelola sumber data bisnis Anda.",
                 analysis:
                   "Pahami tren, perubahan, kontribusi, dan profitabilitas penjualan.",
-                smart: "Pantau bisnis dan tentukan langkah berikutnya.",
               }[page]
             }
           </p>
@@ -189,29 +184,13 @@ export default function DashboardPage({ page, onPage }) {
       {model.loading && <Loading />}
       {model.data && (
         <>
-          {page === "smart" && (
+          {page === "dashboard" && (
             <SmartDashboard
               reportData={model.data}
               query={model.query}
               setFilters={model.setFilters}
               onPage={onPage}
             />
-          )}
-          {page === "dashboard" && (
-            <>
-              {(model.data.sales.length > 0 ||
-                model.data.expenses.length > 0) && (
-                <SummaryCards
-                  metrics={model.data.metrics}
-                  missingHppCount={model.data.missing_hpp_count}
-                />
-              )}
-              {model.data.sales.length > 0 ? (
-                <SalesCharts data={model.data} />
-              ) : (
-                <EmptySales onPage={onPage} />
-              )}
-            </>
           )}
           {page === "analysis" &&
             (model.data.has_sales ? (
