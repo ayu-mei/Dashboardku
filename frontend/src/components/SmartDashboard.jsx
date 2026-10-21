@@ -311,7 +311,9 @@ export default function SmartDashboard({
               >
                 {!messages.length && !busy && (
                   <p className="rounded-xl bg-slate-50 p-4 text-sm leading-relaxed text-slate-500">
-                    Tanyakan data Anda sambil melihat grafik.
+                    Tanyakan penjualan, HPP, laba kotor, atau tren bisnis. AI
+                    menganalisis data berdasarkan filter aktif dan riwayat yang
+                    tersedia.
                   </p>
                 )}
                 {messages.map((m, i) => (
