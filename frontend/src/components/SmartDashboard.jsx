@@ -193,11 +193,7 @@ export default function SmartDashboard({
     });
   }
   function download(message) {
-    const content = `LAPORAN SMART DASHBOARD REFRAKSI\nDibuat: ${message.generated_at}\nFilter: ${filterSummary(message.filters)}\n\n${message.answer}\n\nAngka backend:\n${Object.entries(
-      message.metrics,
-    )
-      .map(([k, v]) => `${k}: ${v ?? "Belum tersedia"}`)
-      .join("\n")}\n\n${message.note}`;
+    const content = `LAPORAN SMART DASHBOARD REFRAKSI\nDibuat: ${new Date(message.generated_at).toLocaleString("id-ID")}\nFilter: ${filterSummary(message.filters)}\n\n${message.answer}`;
     const url = URL.createObjectURL(
       new Blob([content], { type: "text/plain;charset=utf-8" }),
     );

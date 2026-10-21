@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { resolve, join } from "node:path";
 import { spawn } from "node:child_process";
-import { mkdtemp, rm, mkdir } from "node:fs/promises";
+import { mkdtemp, rm, mkdir, readFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { build, preview } from "vite";
 import { chromium } from "playwright";
@@ -292,10 +292,17 @@ try {
     .getByRole("button", { name: "Unduh jawaban / laporan", exact: true })
     .last()
     .click();
+  const reportDownload = await downloaded;
   assert.equal(
-    (await downloaded).suggestedFilename(),
+    reportDownload.suggestedFilename(),
     "laporan-smart-dashboard.txt",
   );
+  const reportText = await readFile(await reportDownload.path(), "utf8");
+  assert.ok(reportText.includes("Penjualan pada filter pilihan: 2000."));
+  assert.ok(reportText.includes("Filter: September 2026"));
+  assert.ok(!reportText.includes("Angka backend:"));
+  assert.ok(!reportText.includes("gross_margin:"));
+  assert.ok(!reportText.includes("Tidak ada data yang diubah."));
   await page.route(base + "/api/smart/ask?*", (r) =>
     r.fulfill({ status: 429, json: { detail: "Batas AI uji tercapai." } }),
   );
