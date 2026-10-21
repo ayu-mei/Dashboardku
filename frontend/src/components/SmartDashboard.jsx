@@ -458,6 +458,18 @@ export default function SmartDashboard({
                     maxLength={1500}
                     value={question}
                     onChange={(e) => setQuestion(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (
+                        e.key === "Enter" &&
+                        !e.shiftKey &&
+                        !e.nativeEvent.isComposing &&
+                        e.keyCode !== 229
+                      ) {
+                        e.preventDefault();
+                        if (!e.repeat && !busy && question.trim())
+                          e.currentTarget.form?.requestSubmit();
+                      }
+                    }}
                     placeholder="Tanyakan data atau fitur dashboard…"
                     disabled={!overview.ai_configured}
                   />

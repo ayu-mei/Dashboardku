@@ -157,6 +157,21 @@ try {
     assistantBox.x > graphBox.x + graphBox.width,
     "AI panel should sit beside charts on desktop",
   );
+  const chatInput = page.getByLabel("Pertanyaan untuk AI");
+  const repliesBefore = await page
+    .getByRole("log", { name: "Percakapan AI" })
+    .locator("article")
+    .count();
+  await chatInput.fill("Bandingkan penjualan");
+  await chatInput.press("Shift+Enter");
+  assert.equal(await chatInput.inputValue(), "Bandingkan penjualan\n");
+  assert.equal(
+    await page
+      .getByRole("log", { name: "Percakapan AI" })
+      .locator("article")
+      .count(),
+    repliesBefore,
+  );
   await page
     .getByLabel("Pertanyaan untuk AI")
     .fill("Tampilkan September tahun 2026");
@@ -169,7 +184,7 @@ try {
     await replyGate;
     await route.fulfill({ response });
   });
-  await page.getByRole("button", { name: "Kirim", exact: true }).click();
+  await page.getByLabel("Pertanyaan untuk AI").press("Enter");
   await page
     .getByLabel("Pertanyaan untuk AI")
     .fill("Pertanyaan berikutnya yang sedang disiapkan");
