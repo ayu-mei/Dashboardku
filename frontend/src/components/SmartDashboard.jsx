@@ -63,9 +63,10 @@ export default function SmartDashboard({
     );
   }
   async function ask(text = question) {
-    if (busy || !text.trim()) return;
+    if (busy || request.current || !text.trim()) return;
     setChatOpen(true);
     setPendingQuestion(text);
+    setQuestion("");
     const sent = new Date().toISOString();
     setSentAt(sent);
     const controller = new AbortController();
@@ -90,15 +91,16 @@ export default function SmartDashboard({
             },
           ].slice(-12),
         );
-        setQuestion((current) => (current === text ? "" : current));
       }
     } catch (e) {
-      if (request.current === controller)
+      if (request.current === controller) {
+        setQuestion((current) => (current.trim() ? current : text));
         setError(
           controller.signal.aborted
             ? "Permintaan AI dihentikan atau terlalu lama. Silakan coba lagi."
             : e.message,
         );
+      }
     } finally {
       clearTimeout(timeout);
       if (request.current === controller) {

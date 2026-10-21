@@ -194,6 +194,11 @@ try {
     await route.fulfill({ response });
   });
   await page.getByLabel("Pertanyaan untuk AI").press("Enter");
+  assert.equal(
+    await page.getByLabel("Pertanyaan untuk AI").inputValue(),
+    "",
+    "composer clears before the AI response arrives",
+  );
   await page
     .getByLabel("Pertanyaan untuk AI")
     .fill("Pertanyaan berikutnya yang sedang disiapkan");
@@ -234,6 +239,11 @@ try {
     .getByRole("alert")
     .filter({ hasText: "Batas AI uji tercapai." })
     .waitFor();
+  assert.equal(
+    await page.getByLabel("Pertanyaan untuk AI").inputValue(),
+    "Berikan rekomendasi penjualan",
+    "failed request restores the sent text",
+  );
   await page.unroute(base + "/api/smart/ask?*");
   await page.getByLabel("Pertanyaan untuk AI").fill("Ringkas penjualan saya");
   await page.getByLabel("Pertanyaan untuk AI").press("Enter");
