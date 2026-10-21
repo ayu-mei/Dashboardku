@@ -7,7 +7,6 @@ import {
   TrendingUp,
   ArrowRight,
   X,
-  LoaderCircle,
 } from "lucide-react";
 import { api } from "../services/api";
 import SalesCharts from "./SalesCharts";
@@ -24,6 +23,8 @@ export default function SmartDashboard({
   const [chatOpen, setChatOpen] = useState(false);
   const [pendingQuestion, setPendingQuestion] = useState("");
   const chatScroll = useRef(null);
+  const chatInput = useRef(null);
+  const [sentAt, setSentAt] = useState(null);
   const [overview, setOverview] = useState(null),
     [error, setError] = useState(""),
     [busy, setBusy] = useState(false);
@@ -65,6 +66,8 @@ export default function SmartDashboard({
     if (busy || !text.trim()) return;
     setChatOpen(true);
     setPendingQuestion(text);
+    const sent = new Date().toISOString();
+    setSentAt(sent);
     const controller = new AbortController();
     request.current = controller;
     const timeout = setTimeout(() => controller.abort(), 100000);
@@ -83,6 +86,7 @@ export default function SmartDashboard({
             {
               ...result,
               question: text,
+              sent_at: sent,
             },
           ].slice(-12),
         );
@@ -272,8 +276,8 @@ export default function SmartDashboard({
             <section
               id="smart-chat"
               role="region"
-              aria-labelledby="smart-chat-title"
-              className={`smart-chat-panel panel flex min-w-0 flex-col overflow-hidden fixed inset-x-3 bottom-3 z-30 max-h-[78dvh] shadow-2xl xl:sticky xl:inset-auto xl:top-24 xl:z-10 xl:h-[calc(100dvh-7rem)] xl:max-h-[900px] xl:shadow-sm ${chatOpen ? "" : "hidden xl:flex"}`}
+              aria-label="Tanya Yuwi"
+              className={`yuwi-chat smart-chat-panel panel flex min-w-0 flex-col overflow-hidden fixed inset-x-3 bottom-3 z-30 max-h-[78dvh] shadow-2xl xl:sticky xl:inset-auto xl:top-24 xl:z-10 xl:h-[calc(100dvh-7rem)] xl:max-h-[900px] xl:shadow-sm ${chatOpen ? "" : "hidden xl:flex"}`}
               onKeyDown={(event) => {
                 if (
                   event.key === "Escape" &&
@@ -284,14 +288,17 @@ export default function SmartDashboard({
                 }
               }}
             >
-              <div className="flex shrink-0 items-center justify-between gap-2">
-                <h3
-                  id="smart-chat-title"
-                  tabIndex={-1}
-                  className="flex items-center gap-2 font-semibold"
-                >
-                  <Sparkles size={18} /> Tanya AI
-                </h3>
+              <header className="yuwi-header">
+                <span className="yuwi-avatar" aria-hidden="true" />
+                <div className="min-w-0 flex-1">
+                  <p className="yuwi-kicker">REFRAKSI · ASISTEN BISNIS</p>
+                  <h3 id="smart-chat-title" tabIndex={-1}>
+                    Yuwi
+                  </h3>
+                  <p className="yuwi-subtitle">
+                    Bantu memahami data bisnis Anda
+                  </p>
+                </div>
                 <button
                   type="button"
                   className="icon-btn xl:hidden"
@@ -300,6 +307,21 @@ export default function SmartDashboard({
                 >
                   <X size={18} />
                 </button>
+              </header>
+              <div className="yuwi-context">
+                <span>Percakapan Anda dengan Yuwi</span>
+                <button
+                  type="button"
+                  disabled={busy}
+                  onClick={() => {
+                    setMessages([]);
+                    setQuestion("");
+                    setError("");
+                    chatInput.current?.focus();
+                  }}
+                >
+                  Chat baru
+                </button>
               </div>
               <div
                 ref={chatScroll}
@@ -307,80 +329,99 @@ export default function SmartDashboard({
                 aria-label="Percakapan AI"
                 aria-live="polite"
                 aria-busy={busy}
-                className="mt-4 min-h-0 min-w-0 flex-1 space-y-4 overflow-y-auto overscroll-contain pr-1"
+                className="yuwi-messages min-h-0 min-w-0 flex-1 space-y-5 overflow-y-auto overscroll-contain"
               >
                 {!messages.length && !busy && (
-                  <p className="rounded-xl bg-slate-50 p-4 text-sm leading-relaxed text-slate-500">
-                    Tanyakan penjualan, HPP, laba kotor, atau tren bisnis. AI
-                    menganalisis data berdasarkan filter aktif dan riwayat yang
-                    tersedia.
-                  </p>
+                  <div className="yuwi-welcome">
+                    <span className="yuwi-avatar" aria-hidden="true" />
+                    <h4>Halo, saya Yuwi</h4>
+                    <p>
+                      Tanyakan penjualan, HPP, laba kotor, atau tren bisnis. AI
+                      menganalisis data berdasarkan filter aktif dan riwayat
+                      yang tersedia.
+                    </p>
+                  </div>
                 )}
                 {messages.map((m, i) => (
                   <article key={i} className="space-y-3">
-                    <div className="ml-auto max-w-[90%] rounded-2xl rounded-tr-sm bg-navy px-4 py-3 text-white">
-                      <p className="mb-1 text-[10px] font-semibold text-slate-300">
-                        Anda
-                      </p>
+                    <div className="yuwi-user">
+                      <p className="yuwi-message-name">Anda</p>
                       <p className="whitespace-pre-wrap break-words text-sm leading-6">
                         {m.question}
                       </p>
+                      <time>
+                        {new Date(
+                          m.sent_at || m.generated_at,
+                        ).toLocaleTimeString("id-ID", {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </time>
                     </div>
-                    <div className="mr-auto min-w-0 max-w-full rounded-2xl rounded-tl-sm border border-slate-100 bg-slate-50 p-4">
-                      <p className="mb-2 flex items-center gap-1.5 text-xs font-semibold text-accent">
-                        <Sparkles size={13} /> AI Refraksi
-                      </p>
-                      <AIAnswer>{m.answer}</AIAnswer>
-                      <p className="muted mt-3 text-[10px]">
-                        {filterSummary(m.filters)} ·{" "}
-                        {new Date(m.generated_at).toLocaleString("id-ID")}
-                      </p>
-                      {m.suggested_filters &&
-                        Object.keys(m.suggested_filters).length > 0 && (
-                          <div className="mt-4 rounded-lg bg-emerald-50 p-3">
-                            <p className="text-sm">
-                              Usulan filter:{" "}
-                              {filterSummary({
-                                ...m.filters,
-                                ...m.suggested_filters,
-                              })}
-                            </p>
-                            <button
-                              className="btn mt-3"
-                              onClick={() => apply(m.suggested_filters)}
-                            >
-                              Terapkan filter usulan
-                            </button>
-                          </div>
-                        )}
-                      <button
-                        className="mt-3 inline-flex min-h-9 items-center gap-1.5 text-xs text-slate-500 hover:text-navy"
-                        onClick={() => download(m)}
-                      >
-                        <Download size={14} /> Unduh jawaban / laporan
-                      </button>
+                    <div className="yuwi-assistant">
+                      <span className="yuwi-avatar" aria-hidden="true" />
+                      <div className="yuwi-answer">
+                        <p className="mb-2 flex items-center gap-1.5 text-xs font-semibold text-accent">
+                          Yuwi
+                        </p>
+                        <AIAnswer>{m.answer}</AIAnswer>
+                        <p className="muted mt-3 text-[10px]">
+                          {filterSummary(m.filters)} ·{" "}
+                          {new Date(m.generated_at).toLocaleTimeString(
+                            "id-ID",
+                            { hour: "2-digit", minute: "2-digit" },
+                          )}
+                        </p>
+                        {m.suggested_filters &&
+                          Object.keys(m.suggested_filters).length > 0 && (
+                            <div className="mt-4 rounded-lg bg-emerald-50 p-3">
+                              <p className="text-sm">
+                                Usulan filter:{" "}
+                                {filterSummary({
+                                  ...m.filters,
+                                  ...m.suggested_filters,
+                                })}
+                              </p>
+                              <button
+                                className="btn mt-3"
+                                onClick={() => apply(m.suggested_filters)}
+                              >
+                                Terapkan filter usulan
+                              </button>
+                            </div>
+                          )}
+                        <button
+                          className="mt-3 inline-flex min-h-9 items-center gap-1.5 text-xs text-slate-500 hover:text-navy"
+                          onClick={() => download(m)}
+                        >
+                          <Download size={14} /> Unduh jawaban / laporan
+                        </button>
+                      </div>
                     </div>
                   </article>
                 ))}
                 {busy && (
                   <div className="space-y-3">
-                    <div className="ml-auto max-w-[90%] rounded-2xl rounded-tr-sm bg-navy px-4 py-3 text-white">
-                      <p className="mb-1 text-[10px] font-semibold text-slate-300">
-                        Anda
-                      </p>
+                    <div className="yuwi-user">
+                      <p className="yuwi-message-name">Anda</p>
                       <p className="whitespace-pre-wrap break-words text-sm leading-6">
                         {pendingQuestion}
                       </p>
+                      <time>
+                        {sentAt &&
+                          new Date(sentAt).toLocaleTimeString("id-ID", {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                      </time>
                     </div>
-                    <p
-                      role="status"
-                      className="mr-auto rounded-2xl rounded-tl-sm bg-slate-50 p-4 text-xs text-slate-500"
-                    >
-                      <LoaderCircle
-                        size={14}
-                        className="mr-2 inline animate-spin"
-                      />{" "}
-                      AI sedang menganalisis…{" "}
+                    <p role="status" className="yuwi-typing">
+                      <span className="yuwi-dots" aria-hidden="true">
+                        <i />
+                        <i />
+                        <i />
+                      </span>
+                      Yuwi sedang menganalisis…{" "}
                       <button
                         className="underline"
                         onClick={() => request.current?.abort()}
@@ -400,41 +441,50 @@ export default function SmartDashboard({
                 )}
               </div>
               <form
-                className="mt-4 flex shrink-0 flex-col gap-2 border-t border-slate-100 pt-3"
+                className="yuwi-compose"
                 onSubmit={(e) => {
                   e.preventDefault();
                   ask();
                 }}
               >
-                <label className="grow">
-                  <span className="sr-only">Pertanyaan untuk AI</span>
-                  <textarea
-                    rows={2}
-                    maxLength={1500}
-                    value={question}
-                    onChange={(e) => setQuestion(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (
-                        e.key === "Enter" &&
-                        !e.shiftKey &&
-                        !e.nativeEvent.isComposing &&
-                        e.keyCode !== 229
-                      ) {
-                        e.preventDefault();
-                        if (!e.repeat && !busy && question.trim())
-                          e.currentTarget.form?.requestSubmit();
-                      }
-                    }}
-                    placeholder="Tanyakan data atau fitur dashboard…"
-                    disabled={!overview.ai_configured}
-                  />
-                </label>
-                <button
-                  className="btn self-end"
-                  disabled={busy || !overview.ai_configured || !question.trim()}
-                >
-                  <Send size={16} /> Kirim
-                </button>
+                <div className="yuwi-input-row">
+                  <label className="min-w-0 flex-1">
+                    <span className="sr-only">Pertanyaan untuk AI</span>
+                    <textarea
+                      ref={chatInput}
+                      rows={2}
+                      maxLength={1500}
+                      value={question}
+                      onChange={(e) => setQuestion(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (
+                          e.key === "Enter" &&
+                          !e.shiftKey &&
+                          !e.nativeEvent.isComposing &&
+                          e.keyCode !== 229
+                        ) {
+                          e.preventDefault();
+                          if (!e.repeat && !busy && question.trim())
+                            e.currentTarget.form?.requestSubmit();
+                        }
+                      }}
+                      placeholder="Tulis pertanyaan untuk Yuwi…"
+                      disabled={!overview.ai_configured}
+                    />
+                  </label>
+                  <button
+                    className="yuwi-send"
+                    aria-label="Kirim"
+                    disabled={
+                      busy || !overview.ai_configured || !question.trim()
+                    }
+                  >
+                    <Send size={18} />
+                  </button>
+                </div>
+                <p className="yuwi-compose-hint">
+                  Enter untuk kirim · Shift + Enter untuk baris baru
+                </p>
               </form>
             </section>
             <button
@@ -444,7 +494,7 @@ export default function SmartDashboard({
               aria-controls="smart-chat"
               onClick={() => setChatOpen(true)}
             >
-              <Sparkles size={17} /> Tanya AI
+              <Sparkles size={17} /> Tanya Yuwi
             </button>
           </div>
           <p className="text-xs text-slate-500">

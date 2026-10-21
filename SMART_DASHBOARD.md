@@ -57,3 +57,5 @@ Tes browser memakai identitas, penyimpanan, dan provider AI tiruan yang terisola
 Dashboard berfokus pada data Excel. Tab Biaya, angka biaya operasional dan laba bersih tidak ditampilkan. Ekspor tidak menyertakan sheet Expenses maupun metrik laba bersih. Data biaya lama tidak dihapus.
 
 Data Bisnis langsung menampilkan tabel penjualan tanpa tab Riwayat Impor. Detail sumber dapat dibuka dari baris rekap melalui Lihat sumber; hanya sumber terkait yang ditampilkan. Import Excel tetap tersedia.
+
+Asisten bernama Yuwi. Panel memakai header, slot avatar kosong, gelembung pengguna di kanan/jawaban Yuwi di kiri, waktu pesan, indikator mengetik, dan tombol Chat baru untuk mengosongkan percakapan lokal. Foto belum dipasang. Enter mengirim, Shift+Enter membuat baris baru.

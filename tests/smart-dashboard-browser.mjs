@@ -160,7 +160,7 @@ try {
   );
   const graphBox = await page.getByTestId("time-chart").boundingBox();
   const assistantBox = await page
-    .getByRole("region", { name: "Tanya AI", exact: true })
+    .getByRole("region", { name: "Tanya Yuwi", exact: true })
     .boundingBox();
   assert.ok(
     assistantBox.x > graphBox.x + graphBox.width,
@@ -284,10 +284,10 @@ try {
     path: "test-artifacts/smart-mobile.png",
     fullPage: true,
   });
-  await page.getByRole("button", { name: "Tanya AI", exact: true }).click();
+  await page.getByRole("button", { name: "Tanya Yuwi", exact: true }).click();
   assert.ok(
     await page
-      .getByRole("region", { name: "Tanya AI", exact: true })
+      .getByRole("region", { name: "Tanya Yuwi", exact: true })
       .isVisible(),
   );
   await page
@@ -331,12 +331,24 @@ try {
     fullPage: false,
   });
   await page.setViewportSize({ width: 390, height: 844 });
+  await page.getByRole("button", { name: "Chat baru", exact: true }).click();
+  await page
+    .getByRole("heading", { name: "Halo, saya Yuwi", exact: true })
+    .waitFor();
+  assert.equal(
+    await page
+      .getByRole("log", { name: "Percakapan AI" })
+      .locator("article")
+      .count(),
+    0,
+  );
+  assert.equal(await page.locator(".yuwi-avatar img").count(), 0);
   await page
     .getByRole("button", { name: "Tutup panel AI", exact: true })
     .click();
   assert.equal(
     await page
-      .getByRole("region", { name: "Tanya AI", exact: true })
+      .getByRole("region", { name: "Tanya Yuwi", exact: true })
       .isVisible(),
     false,
   );
