@@ -484,3 +484,32 @@
     animation: none;
   }
 }
+
+.yuwi-dialog {
+  position: fixed;
+  inset: auto 24px 24px auto;
+  margin: 0;
+  width: 430px;
+  max-width: calc(100vw - 32px);
+  height: min(720px, calc(100dvh - 48px));
+  max-height: calc(100dvh - 32px);
+  color: #10243d;
+  box-shadow: 0 24px 90px #10243d38;
+  overflow: hidden;
+}
+.yuwi-dialog[open] {
+  display: flex;
+  flex-direction: column;
+}
+.yuwi-dialog::backdrop {
+  background: #10243d30;
+}
+@media (max-width: 540px) {
+  .yuwi-dialog {
+    inset: calc(var(--yuwi-viewport-top, 0px) + 8px) 8px auto;
+    width: calc(100vw - 16px);
+    max-width: none;
+    height: calc(var(--yuwi-viewport-height, 100dvh) - 16px);
+    max-height: none;
+  }
+}

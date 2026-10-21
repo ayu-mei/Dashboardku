@@ -24,6 +24,7 @@ export default function SmartDashboard({
   const [pendingQuestion, setPendingQuestion] = useState("");
   const chatScroll = useRef(null);
   const chatInput = useRef(null);
+  const chatDialog = useRef(null);
   const [sentAt, setSentAt] = useState(null);
   const [overview, setOverview] = useState(null),
     [error, setError] = useState(""),
@@ -31,6 +32,37 @@ export default function SmartDashboard({
   const [messages, setMessages] = useState([]),
     [question, setQuestion] = useState("");
   const request = useRef(null);
+  useEffect(() => {
+    const dialog = chatDialog.current;
+    if (!dialog) return;
+    if (chatOpen && !dialog.open) {
+      dialog.showModal();
+      chatInput.current?.focus();
+      requestAnimationFrame(() => window.dispatchEvent(new Event("resize")));
+    }
+    if (!chatOpen && dialog.open) dialog.close();
+  }, [chatOpen, overview]);
+  useEffect(() => {
+    const viewport = window.visualViewport;
+    if (!chatOpen || !viewport) return;
+    const resize = () => {
+      chatDialog.current?.style.setProperty(
+        "--yuwi-viewport-height",
+        `${viewport.height}px`,
+      );
+      chatDialog.current?.style.setProperty(
+        "--yuwi-viewport-top",
+        `${viewport.offsetTop}px`,
+      );
+    };
+    resize();
+    viewport.addEventListener("resize", resize);
+    viewport.addEventListener("scroll", resize);
+    return () => {
+      viewport.removeEventListener("resize", resize);
+      viewport.removeEventListener("scroll", resize);
+    };
+  }, [chatOpen, overview]);
   useLayoutEffect(() => {
     const resize = () => {
       const input = chatInput.current;
@@ -187,13 +219,10 @@ export default function SmartDashboard({
               tersedia.
             </p>
           )}
-          <div
-            id="smart-panel-summary"
-            className="relative grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(320px,380px)]"
-          >
+          <div id="smart-panel-summary" className="space-y-5">
             <div className="min-w-0 space-y-5">
               {reportData?.sales?.length > 0 && (
-                <SalesCharts data={reportData} stacked />
+                <SalesCharts data={reportData} />
               )}
               <section className="panel">
                 <h3 className="flex items-center gap-2 font-semibold">
@@ -288,19 +317,14 @@ export default function SmartDashboard({
                 </details>
               </section>
             </div>
-            <section
+            <dialog
+              ref={chatDialog}
               id="smart-chat"
-              role="region"
               aria-label="Tanya Yuwi"
-              className={`yuwi-chat smart-chat-panel panel flex min-w-0 flex-col overflow-hidden fixed inset-x-3 bottom-3 z-30 max-h-[78dvh] shadow-2xl xl:sticky xl:inset-auto xl:top-24 xl:z-10 xl:h-[calc(100dvh-7rem)] xl:max-h-[900px] xl:shadow-sm ${chatOpen ? "" : "hidden xl:flex"}`}
-              onKeyDown={(event) => {
-                if (
-                  event.key === "Escape" &&
-                  window.matchMedia("(max-width: 1279px)").matches
-                ) {
-                  event.preventDefault();
-                  closeChat();
-                }
+              className="yuwi-chat yuwi-dialog panel"
+              onCancel={(event) => {
+                event.preventDefault();
+                closeChat();
               }}
             >
               <header className="yuwi-header">
@@ -316,7 +340,7 @@ export default function SmartDashboard({
                 </div>
                 <button
                   type="button"
-                  className="icon-btn xl:hidden"
+                  className="icon-btn"
                   aria-label="Tutup panel AI"
                   onClick={closeChat}
                 >
@@ -492,10 +516,11 @@ export default function SmartDashboard({
                   Enter untuk kirim · Shift + Enter untuk baris baru
                 </p>
               </form>
-            </section>
+            </dialog>
             <button
               id="open-smart-chat"
-              className={`btn fixed bottom-5 right-4 z-30 shadow-lg xl:hidden ${chatOpen ? "hidden" : ""}`}
+              className={`btn fixed bottom-5 right-4 z-30 shadow-lg ${chatOpen ? "hidden" : ""}`}
+              aria-haspopup="dialog"
               aria-expanded={chatOpen}
               aria-controls="smart-chat"
               onClick={() => setChatOpen(true)}

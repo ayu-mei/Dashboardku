@@ -181,16 +181,16 @@ export default function DashboardPage({ page, onPage }) {
         <ErrorMessage message={error || model.error} onRetry={model.reload} />
       )}{" "}
       {model.loading && <Loading />}
+      {page === "dashboard" && (
+        <SmartDashboard
+          reportData={model.data}
+          query={model.query}
+          setFilters={model.setFilters}
+          onPage={onPage}
+        />
+      )}
       {model.data && (
         <>
-          {page === "dashboard" && (
-            <SmartDashboard
-              reportData={model.data}
-              query={model.query}
-              setFilters={model.setFilters}
-              onPage={onPage}
-            />
-          )}
           {page === "analysis" &&
             (model.data.has_sales ? (
               <AnalysisView data={model.data} />

@@ -114,6 +114,12 @@ try {
       0,
     );
   }
+  assert.equal(
+    await page
+      .getByRole("dialog", { name: "Tanya Yuwi", exact: true })
+      .isVisible(),
+    false,
+  );
   const yearSelect = page.getByLabel("Tahun", { exact: true });
   await yearSelect.click();
   if (await page.evaluate(() => CSS.supports("appearance", "base-select"))) {
@@ -149,6 +155,13 @@ try {
   await page
     .getByRole("heading", { name: "Ada transaksi yang tampak sama" })
     .waitFor();
+  if (
+    !(await page
+      .getByRole("dialog", { name: "Tanya Yuwi", exact: true })
+      .isVisible())
+  ) {
+    await page.getByRole("button", { name: "Tanya Yuwi", exact: true }).click();
+  }
   await page.getByLabel("Pertanyaan untuk AI").fill("Ringkas penjualan saya");
   await page.getByLabel("Pertanyaan untuk AI").press("Enter");
   await page
@@ -166,14 +179,10 @@ try {
       .evaluate((el) => getComputedStyle(el).display),
     "inline-block",
   );
-  const graphBox = await page.getByTestId("time-chart").boundingBox();
   const assistantBox = await page
-    .getByRole("region", { name: "Tanya Yuwi", exact: true })
+    .getByRole("dialog", { name: "Tanya Yuwi", exact: true })
     .boundingBox();
-  assert.ok(
-    assistantBox.x > graphBox.x + graphBox.width,
-    "AI panel should sit beside charts on desktop",
-  );
+  assert.ok(assistantBox.width <= 440, "chat should open as a floating window");
   const chatInput = page.getByLabel("Pertanyaan untuk AI");
   const repliesBefore = await page
     .getByRole("log", { name: "Percakapan AI" })
@@ -329,7 +338,7 @@ try {
   await page.getByRole("button", { name: "Tanya Yuwi", exact: true }).click();
   assert.ok(
     await page
-      .getByRole("region", { name: "Tanya Yuwi", exact: true })
+      .getByRole("dialog", { name: "Tanya Yuwi", exact: true })
       .isVisible(),
   );
   await page
@@ -390,7 +399,7 @@ try {
     .click();
   assert.equal(
     await page
-      .getByRole("region", { name: "Tanya Yuwi", exact: true })
+      .getByRole("dialog", { name: "Tanya Yuwi", exact: true })
       .isVisible(),
     false,
   );

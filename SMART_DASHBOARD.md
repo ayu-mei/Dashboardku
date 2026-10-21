@@ -2,7 +2,7 @@
 
 Buka menu **Smart Dashboard** setelah login. Filter periode, produk, kategori, dan lokasi di bagian atas menjadi cakupan pertanyaan, laporan, peringatan.
 
-Tampilan memakai empat angka utama: penjualan, HPP, laba kotor, dan margin kotor dan grafik dan panel **Tanya AI**. Dashboard menempatkan grafik dan panel Tanya AI berdampingan di desktop; panel AI tetap terlihat saat halaman digulir. Di ponsel, tombol **Tanya AI** membuka panel percakapan yang dapat ditutup tanpa kehilangan posisi grafik. Ringkasan, rekomendasi dan laporan dapat diminta langsung melalui chat AI. Panel menampilkan gelembung pesan pengguna di kanan dan jawaban AI di kiri, beserta kolom pesan, tanpa tombol tindakan atau contoh pertanyaan. Filter tanggal, produk, kategori dan lokasi tersedia di **Filter lainnya**; filter aktif tetap terlihat dan bisa dihapus satu per satu. HPP dan margin kotor tampil pada ringkasan; penjelasan perhitungan dapat dibuka sesuai kebutuhan. Peringatan HPP yang belum lengkap tetap ditampilkan.
+Tampilan memakai empat angka utama: penjualan, HPP, laba kotor, dan margin kotor. Grafik memakai ruang dashboard sepenuhnya. Tombol mengambang **Tanya Yuwi** membuka jendela chat di desktop maupun ponsel; chat tertutup saat awal dan dapat ditutup tanpa kehilangan percakapan atau posisi grafik. Ringkasan, rekomendasi dan laporan dapat diminta langsung melalui chat AI. Panel menampilkan gelembung pesan pengguna di kanan dan jawaban AI di kiri, beserta kolom pesan, tanpa tombol tindakan atau contoh pertanyaan. Filter tanggal, produk, kategori dan lokasi tersedia di **Filter lainnya**; filter aktif tetap terlihat dan bisa dihapus satu per satu. HPP dan margin kotor tampil pada ringkasan; penjelasan perhitungan dapat dibuka sesuai kebutuhan. Peringatan HPP yang belum lengkap tetap ditampilkan.
 
 ## Kemampuan
 
@@ -59,3 +59,5 @@ Dashboard berfokus pada data Excel. Tab Biaya, angka biaya operasional dan laba 
 Data Bisnis langsung menampilkan tabel penjualan tanpa tab Riwayat Impor. Detail sumber dapat dibuka dari baris rekap melalui Lihat sumber; hanya sumber terkait yang ditampilkan. Import Excel tetap tersedia.
 
 Asisten bernama Yuwi. Panel memakai header, slot avatar kosong, gelembung pengguna di kanan/jawaban Yuwi di kiri, waktu pesan, indikator mengetik, dan tombol Chat baru untuk mengosongkan percakapan lokal. Foto belum dipasang. Enter mengirim, Shift+Enter membuat baris baru.
+
+Chat Yuwi memakai dialog modal mengambang di kanan bawah pada desktop dan menyesuaikan layar/keyboard pada ponsel. Tombol Tutup atau Escape menutup dialog dan mengembalikan fokus ke tombol pembuka.
