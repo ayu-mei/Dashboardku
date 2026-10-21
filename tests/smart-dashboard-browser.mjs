@@ -158,6 +158,14 @@ try {
     await page.getByTestId("time-chart").isVisible(),
     "chart must remain visible with AI response",
   );
+  assert.equal(await page.locator(".yuwi-message-name").count(), 0);
+  assert.equal(
+    await page
+      .locator(".yuwi-user time")
+      .first()
+      .evaluate((el) => getComputedStyle(el).display),
+    "inline-block",
+  );
   const graphBox = await page.getByTestId("time-chart").boundingBox();
   const assistantBox = await page
     .getByRole("region", { name: "Tanya Yuwi", exact: true })

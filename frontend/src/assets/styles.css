@@ -306,25 +306,26 @@
   margin-left: auto;
   max-width: 88%;
   width: fit-content;
-  padding: 11px 14px;
+  padding: 7px 11px;
   border-radius: 17px 4px 17px 17px;
   background: #087d65;
   color: white;
   box-shadow: 0 3px 0 #08604d15;
 }
-.yuwi-message-name {
-  font-size: 10px;
-  font-weight: 600;
-  color: #e1f3eb;
-  margin-bottom: 4px;
-  text-align: right;
+.yuwi-user-text {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-size: 13px;
+  line-height: 1.6;
 }
 .yuwi-user time {
-  display: block;
-  margin-top: 5px;
-  text-align: right;
-  color: #e1f3eb;
+  display: inline-block;
+  margin-left: 9px;
+  vertical-align: baseline;
+  white-space: nowrap;
+  color: #d2e9df;
   font-size: 9px;
+  line-height: 1;
 }
 .yuwi-assistant {
   display: flex;

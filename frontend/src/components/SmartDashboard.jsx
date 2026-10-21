@@ -360,10 +360,7 @@ export default function SmartDashboard({
                 {messages.map((m, i) => (
                   <article key={i} className="space-y-3">
                     <div className="yuwi-user">
-                      <p className="yuwi-message-name">Anda</p>
-                      <p className="whitespace-pre-wrap break-words text-sm leading-6">
-                        {m.question}
-                      </p>
+                      <span className="yuwi-user-text">{m.question}</span>
                       <time>
                         {new Date(
                           m.sent_at || m.generated_at,
@@ -376,9 +373,6 @@ export default function SmartDashboard({
                     <div className="yuwi-assistant">
                       <span className="yuwi-avatar" aria-hidden="true" />
                       <div className="yuwi-answer">
-                        <p className="mb-2 flex items-center gap-1.5 text-xs font-semibold text-accent">
-                          Yuwi
-                        </p>
                         <AIAnswer>{m.answer}</AIAnswer>
                         <p className="muted mt-3 text-[10px]">
                           {filterSummary(m.filters)} ·{" "}
@@ -418,10 +412,7 @@ export default function SmartDashboard({
                 {busy && (
                   <div className="space-y-3">
                     <div className="yuwi-user">
-                      <p className="yuwi-message-name">Anda</p>
-                      <p className="whitespace-pre-wrap break-words text-sm leading-6">
-                        {pendingQuestion}
-                      </p>
+                      <span className="yuwi-user-text">{pendingQuestion}</span>
                       <time>
                         {sentAt &&
                           new Date(sentAt).toLocaleTimeString("id-ID", {
