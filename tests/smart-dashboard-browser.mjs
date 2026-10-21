@@ -104,6 +104,16 @@ try {
     await page.getByRole("tab", { name: "Simulasi", exact: true }).count(),
     0,
   );
+  for (const name of [
+    "Ringkasan bisnis",
+    "Rekomendasi tindakan",
+    "Buat laporan",
+  ]) {
+    assert.equal(
+      await page.getByRole("button", { name, exact: true }).count(),
+      0,
+    );
+  }
   const yearSelect = page.getByLabel("Tahun", { exact: true });
   await yearSelect.click();
   if (await page.evaluate(() => CSS.supports("appearance", "base-select"))) {
@@ -139,9 +149,8 @@ try {
   await page
     .getByRole("heading", { name: "Ada transaksi yang tampak sama" })
     .waitFor();
-  await page
-    .getByRole("button", { name: "Ringkasan bisnis", exact: true })
-    .click();
+  await page.getByLabel("Pertanyaan untuk AI").fill("Ringkas penjualan saya");
+  await page.getByLabel("Pertanyaan untuk AI").press("Enter");
   await page
     .getByText("Penjualan pada filter pilihan: 7000.", { exact: false })
     .waitFor();
@@ -201,7 +210,8 @@ try {
   await page
     .getByRole("button", { name: "Terapkan filter usulan", exact: true })
     .click();
-  await page.getByRole("button", { name: "Buat laporan", exact: true }).click();
+  await page.getByLabel("Pertanyaan untuk AI").fill("Buat laporan penjualan");
+  await page.getByLabel("Pertanyaan untuk AI").press("Enter");
   await page
     .getByText("Penjualan pada filter pilihan: 2000.", { exact: false })
     .waitFor();
@@ -217,16 +227,16 @@ try {
     r.fulfill({ status: 429, json: { detail: "Batas AI uji tercapai." } }),
   );
   await page
-    .getByRole("button", { name: "Rekomendasi tindakan", exact: true })
-    .click();
+    .getByLabel("Pertanyaan untuk AI")
+    .fill("Berikan rekomendasi penjualan");
+  await page.getByLabel("Pertanyaan untuk AI").press("Enter");
   await page
     .getByRole("alert")
     .filter({ hasText: "Batas AI uji tercapai." })
     .waitFor();
   await page.unroute(base + "/api/smart/ask?*");
-  await page
-    .getByRole("button", { name: "Ringkasan bisnis", exact: true })
-    .click();
+  await page.getByLabel("Pertanyaan untuk AI").fill("Ringkas penjualan saya");
+  await page.getByLabel("Pertanyaan untuk AI").press("Enter");
   await page
     .getByText("Penjualan pada filter pilihan: 2000.", { exact: false })
     .last()

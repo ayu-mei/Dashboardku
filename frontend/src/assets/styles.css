@@ -207,16 +207,7 @@
 }
 
 /* Keep the conversation and composer usable when the mobile keyboard opens. */
-@media (max-height: 600px) {
-  .smart-chat-period,
-  .smart-chat-prompts {
-    display: none;
-  }
-}
 @media (max-width: 1279px) and (max-height: 600px) {
-  .smart-chat-actions {
-    display: none;
-  }
   .smart-chat-panel {
     max-height: calc(100dvh - 1.5rem);
   }

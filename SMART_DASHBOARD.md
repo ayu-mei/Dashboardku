@@ -2,7 +2,7 @@
 
 Buka menu **Smart Dashboard** setelah login. Filter periode, produk, kategori, dan lokasi di bagian atas menjadi cakupan pertanyaan, laporan, peringatan.
 
-Tampilan memakai empat angka utama: penjualan, HPP, laba kotor, dan margin kotor dan grafik dan panel **Tanya AI**. Dashboard menempatkan grafik dan panel Tanya AI berdampingan di desktop; panel AI tetap terlihat saat halaman digulir. Di ponsel, tombol **Tanya AI** membuka panel percakapan yang dapat ditutup tanpa kehilangan posisi grafik. Tombol Ringkasan, Rekomendasi dan Laporan menampilkan status proses serta hasil langsung di panel AI. Filter tanggal, produk, kategori dan lokasi tersedia di **Filter lainnya**; filter aktif tetap terlihat dan bisa dihapus satu per satu. HPP dan margin kotor tampil pada ringkasan; penjelasan perhitungan dapat dibuka sesuai kebutuhan. Peringatan HPP yang belum lengkap tetap ditampilkan.
+Tampilan memakai empat angka utama: penjualan, HPP, laba kotor, dan margin kotor dan grafik dan panel **Tanya AI**. Dashboard menempatkan grafik dan panel Tanya AI berdampingan di desktop; panel AI tetap terlihat saat halaman digulir. Di ponsel, tombol **Tanya AI** membuka panel percakapan yang dapat ditutup tanpa kehilangan posisi grafik. Ringkasan, rekomendasi dan laporan dapat diminta langsung melalui chat AI. Panel hanya menampilkan percakapan dan kolom pesan, tanpa tombol tindakan atau contoh pertanyaan. Filter tanggal, produk, kategori dan lokasi tersedia di **Filter lainnya**; filter aktif tetap terlihat dan bisa dihapus satu per satu. HPP dan margin kotor tampil pada ringkasan; penjelasan perhitungan dapat dibuka sesuai kebutuhan. Peringatan HPP yang belum lengkap tetap ditampilkan.
 
 ## Kemampuan
 

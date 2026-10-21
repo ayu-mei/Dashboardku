@@ -15,17 +15,6 @@ import AIAnswer from "./AIAnswer";
 import SummaryCards from "./SummaryCards";
 import { sourceRupiah, monthLabel, filterSummary } from "../utils/format";
 
-const tasks = [
-  ["summary", "Ringkasan bisnis"],
-  ["recommendations", "Rekomendasi tindakan"],
-  ["report", "Buat laporan"],
-];
-const prompts = [
-  "Apa yang paling perlu saya perhatikan?",
-  "Produk mana yang paling besar kontribusinya?",
-  "Apa keterbatasan data saya saat ini?",
-];
-
 export default function SmartDashboard({
   query,
   setFilters,
@@ -33,7 +22,6 @@ export default function SmartDashboard({
   reportData,
 }) {
   const [chatOpen, setChatOpen] = useState(false);
-  const [activeTask, setActiveTask] = useState("chat");
   const [pendingQuestion, setPendingQuestion] = useState("");
   const chatScroll = useRef(null);
   const [overview, setOverview] = useState(null),
@@ -73,13 +61,10 @@ export default function SmartDashboard({
       document.getElementById("open-smart-chat")?.focus(),
     );
   }
-  async function ask(task = "chat", text = question) {
-    if (busy || (task === "chat" && !text.trim())) return;
+  async function ask(text = question) {
+    if (busy || !text.trim()) return;
     setChatOpen(true);
-    setActiveTask(task);
-    setPendingQuestion(
-      task === "chat" ? text : tasks.find((item) => item[0] === task)[1],
-    );
+    setPendingQuestion(text);
     const controller = new AbortController();
     request.current = controller;
     const timeout = setTimeout(() => controller.abort(), 100000);
@@ -88,7 +73,7 @@ export default function SmartDashboard({
     try {
       const result = await api("/api/smart/ask?" + query, {
         method: "POST",
-        body: { task, question: task === "chat" ? text : "" },
+        body: { task: "chat", question: text },
         signal: controller.signal,
       });
       if (!controller.signal.aborted) {
@@ -97,13 +82,11 @@ export default function SmartDashboard({
             ...v,
             {
               ...result,
-              question:
-                task === "chat" ? text : tasks.find((t) => t[0] === task)[1],
+              question: text,
             },
           ].slice(-12),
         );
-        if (task === "chat")
-          setQuestion((current) => (current === text ? "" : current));
+        setQuestion((current) => (current === text ? "" : current));
       }
     } catch (e) {
       if (request.current === controller)
@@ -318,54 +301,6 @@ export default function SmartDashboard({
                   <X size={18} />
                 </button>
               </div>
-              <p className="smart-chat-period muted mt-2">
-                {filterSummary(overview.filters)}
-              </p>
-              <div className="smart-chat-actions mt-3 flex shrink-0 flex-wrap gap-2">
-                {tasks.map(([id, label]) => (
-                  <button
-                    key={id}
-                    aria-label={label}
-                    title={
-                      {
-                        summary: "Jelaskan angka utama pada periode pilihan",
-                        recommendations: "Sarankan langkah berdasarkan data",
-                        report: "Susun laporan yang dapat ditinjau dan diunduh",
-                      }[id]
-                    }
-                    className={`${id === "summary" ? "btn" : "btn-secondary"} !px-3 !text-xs`}
-                    disabled={busy || !overview?.ai_configured}
-                    onClick={() => ask(id)}
-                  >
-                    {busy && activeTask === id ? (
-                      <>
-                        <LoaderCircle size={14} className="animate-spin" />{" "}
-                        Memproses…
-                      </>
-                    ) : (
-                      {
-                        summary: "Ringkasan",
-                        recommendations: "Rekomendasi",
-                        report: "Laporan",
-                      }[id]
-                    )}
-                  </button>
-                ))}
-              </div>
-              <div className="smart-chat-prompts mt-3 hidden shrink-0 flex-wrap gap-2 xl:flex">
-                {prompts.map((p) => (
-                  <button
-                    className="rounded-full border border-slate-200 px-3 py-2 text-left text-xs hover:bg-slate-50 disabled:opacity-40"
-                    key={p}
-                    disabled={busy || !overview.ai_configured}
-                    onClick={() => {
-                      setQuestion(p);
-                    }}
-                  >
-                    {p}
-                  </button>
-                ))}
-              </div>
               <div
                 ref={chatScroll}
                 role="log"
@@ -376,8 +311,7 @@ export default function SmartDashboard({
               >
                 {!messages.length && !busy && (
                   <p className="rounded-xl bg-slate-50 p-4 text-sm leading-relaxed text-slate-500">
-                    Pilih tindakan di atas atau tanyakan data sambil melihat
-                    grafik.
+                    Tanyakan data Anda sambil melihat grafik.
                   </p>
                 )}
                 {messages.map((m, i) => (
