@@ -5,8 +5,7 @@ import pytest
 from fastapi.testclient import TestClient
 from app.main import app
 from app.models.records import Filters
-from app.services.smart import evidence, forecast, simulation
-from app.routes.smart import Scenario
+from app.services.smart import evidence, forecast
 
 
 def sale(day='2026-09-02', product='Lensa', **kwargs):
@@ -24,19 +23,6 @@ def test_evidence_missing_hpp_and_no_customer_data():
     assert any(a['code']=='missing_hpp' for a in result['alerts'])
     assert 'PRIVATE CUSTOMER' not in str(result)
     assert 'private-owner' not in str(result)
-
-
-def test_simulation_exact_cost_volume_and_missing_hpp():
-    baseline = {'sales':'1000','hpp':'600','operational':'100'}
-    changes = Scenario(price_pct=10, volume_pct=20, cost_pct=5, expense_pct=-10)
-    result = simulation(baseline,changes)
-    assert Decimal(result['sales']) == 1320
-    assert Decimal(result['hpp']) == 756
-    assert Decimal(result['net']) == 474
-    assert simulation({**baseline,'hpp':None},changes)['net'] is None
-    with pytest.raises(ValueError): Scenario(price_pct='NaN')
-    with pytest.raises(ValueError): Scenario(volume_pct=-101)
-    with pytest.raises(ValueError): Scenario(cost_pct=True)
 
 
 def test_forecast_uses_consecutive_closed_months_and_backtests():
@@ -88,7 +74,7 @@ def test_api_reads_with_request_owner_and_validates_filters(smart_client):
     assert client.get('/api/smart/overview?year=0').status_code==422
     assert client.post('/api/smart/ask',json={'question':'','task':'chat'}).status_code==422
     assert client.post('/api/smart/ask',json={'task':'delete','question':'x'}).status_code==422
-    assert client.post('/api/smart/simulate?year=2025',json={}).status_code==422
+    assert '/api/smart/simulate' not in client.get('/openapi.json').json()['paths']
     assert client.post('/api/smart/import-help',json={'sheet':'x','kind':'transaction','columns':['x'*501]}).status_code==422
 
 
@@ -114,7 +100,7 @@ def test_all_smart_endpoints_require_auth(monkeypatch):
     settings.cache_clear()
     client=TestClient(app)
     assert client.get('/api/smart/overview').status_code==401
-    for route in ['ask','simulate','import-help']:
+    for route in ['ask','import-help']:
         assert client.post('/api/smart/'+route,json={}).status_code==401
     settings.cache_clear()
 

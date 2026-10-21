@@ -1,8 +1,8 @@
 # Smart Dashboard Refraksi
 
-Buka menu **Smart Dashboard** setelah login. Filter periode, produk, kategori, dan lokasi di bagian atas menjadi cakupan pertanyaan, laporan, peringatan, dan simulasi.
+Buka menu **Smart Dashboard** setelah login. Filter periode, produk, kategori, dan lokasi di bagian atas menjadi cakupan pertanyaan, laporan, peringatan.
 
-Tampilan memakai empat angka utama dan tab **Ringkasan** dan **Simulasi**. Ringkasan menempatkan grafik dan panel Tanya AI berdampingan di desktop; panel AI tetap terlihat saat halaman digulir. Di ponsel, tombol **Tanya AI** membuka panel percakapan yang dapat ditutup tanpa kehilangan posisi grafik. Tombol Ringkasan, Rekomendasi dan Laporan menampilkan status proses serta hasil langsung di panel AI. Filter tanggal, produk, kategori dan lokasi tersedia di **Filter lainnya**; filter aktif tetap terlihat dan bisa dihapus satu per satu. HPP/margin dan penjelasan perhitungan dapat dibuka sesuai kebutuhan. Peringatan HPP yang belum lengkap tetap ditampilkan.
+Tampilan memakai empat angka utama dan grafik dan panel **Tanya AI**. Dashboard menempatkan grafik dan panel Tanya AI berdampingan di desktop; panel AI tetap terlihat saat halaman digulir. Di ponsel, tombol **Tanya AI** membuka panel percakapan yang dapat ditutup tanpa kehilangan posisi grafik. Tombol Ringkasan, Rekomendasi dan Laporan menampilkan status proses serta hasil langsung di panel AI. Filter tanggal, produk, kategori dan lokasi tersedia di **Filter lainnya**; filter aktif tetap terlihat dan bisa dihapus satu per satu. HPP/margin dan penjelasan perhitungan dapat dibuka sesuai kebutuhan. Peringatan HPP yang belum lengkap tetap ditampilkan.
 
 ## Kemampuan
 
@@ -10,7 +10,6 @@ Tampilan memakai empat angka utama dan tab **Ringkasan** dan **Simulasi**. Ringk
 - Tanya data memakai angka backend, perbandingan periode, kontribusi dan perubahan produk, ringkasan lokasi, serta klaim supplier. Jawaban harus membedakan bukti dan dugaan. Detail persediaan dan seluruh baris master belum menjadi konteks AI.
 - Permintaan menampilkan periode lain menghasilkan **usulan filter**, lalu pengguna menekan **Terapkan filter usulan**. Data periode lain baru dibaca sesudah filter diterapkan. AI tidak dapat membuat, mengedit, atau menghapus transaksi.
 - Peringatan berdasarkan aturan: HPP belum lengkap, laba negatif, penurunan penjualan minimal 20%, konsentrasi produk minimal 50%, dan transaksi yang tampak sama. Kemiripan transaksi bukan kepastian duplikasi.
-- Simulasi perubahan harga, volume unit, HPP per unit dan biaya operasional, dihitung dengan Decimal di backend. Biaya periode belum dialokasikan ke produk/lokasi. HPP kosong membuat laba skenario tetap tidak tersedia.
 - Estimasi penjualan satu bulan menggunakan rata-rata bergerak 3 bulan. Memerlukan 6 bulan berurutan yang memiliki data sampai bulan kalender terakhir yang sudah berakhir. Tidak mengisi bulan kosong dengan nol; tidak memakai bulan berjalan. Menampilkan MAE dari 3 prediksi historis. Ini baseline statistik, bukan prediksi musiman atau jaminan hasil. Pengguna perlu memastikan laporan bulanannya lengkap. Riwayat mengikuti produk/kategori/lokasi, terlepas dari filter waktu.
 - Tombol **Jelaskan & sarankan kolom** di pemeriksaan Excel mengirim metadata header dan pesan pemeriksaan untuk mendapat penjelasan/saran. Saran berupa teks; tidak menerapkan pencocokan otomatis atau melewati validasi dan persetujuan impor.
 
@@ -37,7 +36,7 @@ Konteks dibatasi 30 produk, lokasi, sumber, supplier dan perubahan produk; timel
 
 Maksimal 8 permintaan AI per akun per menit, satu permintaan aktif per akun, empat global per proses backend. Batas ini berada di memori proses; deployment dengan banyak proses/replica perlu shared limiter bila ingin kuota global lintas proses. Cloudflare dapat memberlakukan kuota tersendiri. Permintaan tidak diulang otomatis agar tidak menambah biaya tanpa tindakan pengguna.
 
-Token dan Account ID wajib untuk fitur generatif. Peringatan, simulasi dan estimasi statistik tetap berjalan tanpa layanan AI. Gagalnya Cloudflare tidak mengeluarkan pengguna dari sesi Supabase.
+Token dan Account ID wajib untuk fitur generatif. Peringatan dan estimasi statistik tetap berjalan tanpa layanan AI. Gagalnya Cloudflare tidak mengeluarkan pengguna dari sesi Supabase.
 
 ## Verifikasi
 

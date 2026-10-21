@@ -5,7 +5,6 @@ from collections import defaultdict, deque
 from datetime import datetime, timezone
 from time import monotonic
 from typing import Literal
-from decimal import Decimal
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 from starlette.concurrency import run_in_threadpool
@@ -13,8 +12,7 @@ from app.models.records import Filters
 from app.routes.dashboard import report_filters
 from app.services.database import authenticated, all_records
 from app.services.sources import source_datasets, recap_sales
-from app.services.smart import evidence, generate, simulation, MODEL
-from app.services.finance import report
+from app.services.smart import evidence, generate, MODEL
 from app.utils.config import settings
 from app.services.ai_scope import dashboard_question, scope_reply
 
@@ -28,20 +26,6 @@ class Ask(BaseModel):
     model_config = ConfigDict(extra='forbid')
     task: Literal['chat','summary','recommendations','report'] = 'chat'
     question: str = Field(default='', max_length=1500)
-
-
-class Scenario(BaseModel):
-    model_config = ConfigDict(extra='forbid')
-    price_pct: Decimal = Field(default=0, ge=-100, le=500, allow_inf_nan=False)
-    volume_pct: Decimal = Field(default=0, ge=-100, le=500, allow_inf_nan=False)
-    cost_pct: Decimal = Field(default=0, ge=-100, le=500, allow_inf_nan=False)
-    expense_pct: Decimal = Field(default=0, ge=-100, le=500, allow_inf_nan=False)
-
-    @field_validator('price_pct','volume_pct','cost_pct','expense_pct', mode='before')
-    @classmethod
-    def no_booleans(cls, value):
-        if isinstance(value, bool): raise ValueError('Nilai harus angka')
-        return value
 
 
 class ImportHelp(BaseModel):
@@ -117,15 +101,6 @@ async def ask(body: Ask, filters: Filters = Depends(report_filters), token=Depen
     return {**result, 'filters':filters.model_dump(mode='json'), 'metrics':context['metrics'],
             'generated_at':datetime.now(timezone.utc).isoformat(),
             'note':'Jawaban AI perlu diperiksa terhadap angka dashboard. Tidak ada data yang diubah.'}
-
-
-@router.post('/simulate')
-async def simulate(body: Scenario, filters: Filters = Depends(report_filters), token=Depends(authenticated)):
-    sales, expenses, _, _ = await load(token)
-    current = await run_in_threadpool(report, sales, expenses, filters)
-    if not current['sales']:
-        raise HTTPException(422, 'Belum ada penjualan pada filter ini untuk dasar simulasi.')
-    return {'baseline':current['metrics'], 'scenario':simulation(current['metrics'],body), 'changes':body.model_dump(mode='json')}
 
 
 @router.post('/import-help')

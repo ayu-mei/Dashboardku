@@ -5,7 +5,6 @@ import {
   Download,
   AlertTriangle,
   TrendingUp,
-  Calculator,
   ArrowRight,
   X,
   LoaderCircle,
@@ -33,7 +32,6 @@ export default function SmartDashboard({
   onPage,
   reportData,
 }) {
-  const [tab, setTab] = useState("summary");
   const [chatOpen, setChatOpen] = useState(false);
   const [activeTask, setActiveTask] = useState("chat");
   const [pendingQuestion, setPendingQuestion] = useState("");
@@ -43,26 +41,14 @@ export default function SmartDashboard({
     [busy, setBusy] = useState(false);
   const [messages, setMessages] = useState([]),
     [question, setQuestion] = useState("");
-  const [changes, setChanges] = useState({
-    price_pct: 0,
-    volume_pct: 0,
-    cost_pct: 0,
-    expense_pct: 0,
-  });
-  const [scenario, setScenario] = useState(null),
-    [simBusy, setSimBusy] = useState(false);
-  const request = useRef(null),
-    simRequest = useRef(null);
+  const request = useRef(null);
   useEffect(() => {
     const controller = new AbortController();
     setOverview(null);
     setMessages([]);
-    setScenario(null);
     setError("");
     setBusy(false);
-    setSimBusy(false);
     request.current?.abort();
-    simRequest.current?.abort();
     api("/api/smart/overview?" + query, { signal: controller.signal })
       .then((value) => {
         if (!controller.signal.aborted) setOverview(value);
@@ -73,9 +59,7 @@ export default function SmartDashboard({
     return () => {
       controller.abort();
       request.current?.abort();
-      simRequest.current?.abort();
       request.current = null;
-      simRequest.current = null;
     };
   }, [query]);
 
@@ -91,7 +75,6 @@ export default function SmartDashboard({
   }
   async function ask(task = "chat", text = question) {
     if (busy || (task === "chat" && !text.trim())) return;
-    setTab("summary");
     setChatOpen(true);
     setActiveTask(task);
     setPendingQuestion(
@@ -137,30 +120,6 @@ export default function SmartDashboard({
       }
     }
   }
-  async function simulate(event) {
-    event.preventDefault();
-    if (simBusy) return;
-    const controller = new AbortController();
-    simRequest.current = controller;
-    setSimBusy(true);
-    setError("");
-    setScenario(null);
-    try {
-      const result = await api("/api/smart/simulate?" + query, {
-        method: "POST",
-        body: changes,
-        signal: controller.signal,
-      });
-      if (!controller.signal.aborted) setScenario(result);
-    } catch (e) {
-      if (!controller.signal.aborted) setError(e.message);
-    } finally {
-      if (simRequest.current === controller) {
-        setSimBusy(false);
-        simRequest.current = null;
-      }
-    }
-  }
   function apply(suggestion) {
     // Explicit user action; never applies generated filters silently.
     setFilters((current) => {
@@ -201,7 +160,7 @@ export default function SmartDashboard({
   }
   return (
     <div className="space-y-5">
-      {error && (tab !== "summary" || !overview) && (
+      {error && !overview && (
         <p
           role="alert"
           className="rounded-xl bg-red-50 p-4 text-sm text-red-800"
@@ -222,60 +181,16 @@ export default function SmartDashboard({
           />
           {!overview.ai_configured && (
             <p className="rounded-xl bg-amber-50 p-4 text-sm text-amber-900">
-              AI belum terhubung. Hubungi administrator. Simulasi dan estimasi
-              tetap tersedia.
+              AI belum terhubung. Hubungi administrator. Estimasi tetap
+              tersedia.
             </p>
           )}
           <div
-            role="tablist"
-            aria-label="Fitur Smart Dashboard"
-            className="flex gap-1 rounded-xl border border-slate-200 bg-white p-1"
-          >
-            {[
-              ["summary", "Ringkasan"],
-              ["simulation", "Simulasi"],
-            ].map(([id, label], index) => (
-              <button
-                key={id}
-                id={`smart-tab-${id}`}
-                role="tab"
-                aria-selected={tab === id}
-                aria-controls={`smart-panel-${id}`}
-                tabIndex={tab === id ? 0 : -1}
-                className={`min-h-11 scroll-mt-24 flex-1 rounded-lg px-3 py-2 text-sm font-semibold ${tab === id ? "bg-navy text-white" : "text-slate-500 hover:bg-slate-50"}`}
-                onClick={() => setTab(id)}
-                onKeyDown={(event) => {
-                  const ids = ["summary", "simulation"];
-                  const next =
-                    event.key === "ArrowRight"
-                      ? (index + 1) % 2
-                      : event.key === "ArrowLeft"
-                        ? (index + 1) % 2
-                        : event.key === "Home"
-                          ? 0
-                          : event.key === "End"
-                            ? 1
-                            : null;
-                  if (next !== null) {
-                    event.preventDefault();
-                    setTab(ids[next]);
-                    document.getElementById(`smart-tab-${ids[next]}`)?.focus();
-                  }
-                }}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
-          <div
             id="smart-panel-summary"
-            role="tabpanel"
-            aria-labelledby="smart-tab-summary"
-            hidden={tab !== "summary"}
-            className={`relative ${tab === "summary" ? "grid" : "hidden"} items-start gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(320px,380px)]`}
+            className="relative grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(320px,380px)]"
           >
             <div className="min-w-0 space-y-5">
-              {tab === "summary" && reportData?.sales?.length > 0 && (
+              {reportData?.sales?.length > 0 && (
                 <SalesCharts data={reportData} stacked />
               )}
               <section className="panel">
@@ -565,82 +480,6 @@ export default function SmartDashboard({
               <Sparkles size={17} /> Tanya AI
             </button>
           </div>
-          <section
-            id="smart-panel-simulation"
-            role="tabpanel"
-            aria-labelledby="smart-tab-simulation"
-            hidden={tab !== "simulation"}
-            className="panel"
-          >
-            <h3 className="flex items-center gap-2 font-semibold">
-              <Calculator size={18} /> Simulasi bisnis
-            </h3>
-            <p className="muted mt-2">
-              Ubah harga, jumlah, atau biaya untuk melihat dampaknya.
-            </p>
-            <form onSubmit={simulate}>
-              <div className="mt-4 grid grid-cols-2 gap-3">
-                {[
-                  ["price_pct", "Harga jual (%)"],
-                  ["volume_pct", "Volume unit (%)"],
-                  ["cost_pct", "HPP per unit (%)"],
-                  ["expense_pct", "Biaya operasional (%)"],
-                ].map(([key, label]) => (
-                  <label key={key} className="text-xs">
-                    {label}
-                    <input
-                      type="number"
-                      min="-100"
-                      max="500"
-                      step="0.1"
-                      required
-                      value={changes[key]}
-                      onChange={(e) => {
-                        setChanges((v) => ({ ...v, [key]: e.target.value }));
-                        setScenario(null);
-                      }}
-                    />
-                  </label>
-                ))}
-              </div>
-              <button
-                className="btn mt-4"
-                disabled={simBusy || !overview.rows.sales}
-              >
-                {simBusy ? "Menghitung…" : "Hitung simulasi"}
-              </button>
-            </form>
-            {scenario && (
-              <>
-                <dl className="mt-5 grid grid-cols-2 gap-3">
-                  {[
-                    ["sales", "Penjualan"],
-                    ["hpp", "HPP"],
-                    ["operational", "Biaya operasional"],
-                    ["net", "Laba bersih"],
-                  ].map(([k, label]) => (
-                    <div className="rounded-lg bg-slate-50 p-3" key={k}>
-                      <dt className="text-xs text-slate-500">{label}</dt>
-                      <dd className="mt-1 text-sm font-semibold">
-                        {scenario.scenario[k] == null
-                          ? "HPP belum lengkap"
-                          : sourceRupiah(scenario.scenario[k])}
-                      </dd>
-                      <dd className="mt-1 text-xs text-slate-500">
-                        Awal:{" "}
-                        {scenario.baseline[k] == null
-                          ? "Belum tersedia"
-                          : sourceRupiah(scenario.baseline[k])}
-                      </dd>
-                    </div>
-                  ))}
-                </dl>
-                <p className="mt-3 text-xs leading-relaxed text-slate-500">
-                  {scenario.scenario.note}
-                </p>
-              </>
-            )}
-          </section>
           <p className="text-xs text-slate-500">
             Diperiksa {new Date(overview.generated_at).toLocaleString("id-ID")}{" "}
             · {overview.rows.sales} baris penjualan · {overview.rows.expenses}{" "}

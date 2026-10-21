@@ -99,7 +99,11 @@ try {
       .getAttribute("aria-current"),
     "page",
   );
-  await page.getByRole("tab", { name: "Ringkasan", exact: true }).waitFor();
+  await page.getByTestId("time-chart").waitFor();
+  assert.equal(
+    await page.getByRole("tab", { name: "Simulasi", exact: true }).count(),
+    0,
+  );
   const yearSelect = page.getByLabel("Tahun", { exact: true });
   await yearSelect.click();
   if (await page.evaluate(() => CSS.supports("appearance", "base-select"))) {
@@ -121,12 +125,6 @@ try {
     await page.keyboard.press("Escape");
   }
   assert.equal(
-    await page
-      .getByRole("tab", { name: "Ringkasan", exact: true })
-      .getAttribute("aria-selected"),
-    "true",
-  );
-  assert.equal(
     await page.getByLabel("Dari tanggal", { exact: true }).isVisible(),
     false,
   );
@@ -147,12 +145,6 @@ try {
   await page
     .getByText("Penjualan pada filter pilihan: 7000.", { exact: false })
     .waitFor();
-  assert.equal(
-    await page
-      .getByRole("tab", { name: "Ringkasan", exact: true })
-      .getAttribute("aria-selected"),
-    "true",
-  );
   assert.ok(
     await page.getByTestId("time-chart").isVisible(),
     "chart must remain visible with AI response",
@@ -165,13 +157,6 @@ try {
     assistantBox.x > graphBox.x + graphBox.width,
     "AI panel should sit beside charts on desktop",
   );
-  await page.getByRole("tab", { name: "Simulasi", exact: true }).click();
-  await page.getByLabel("Harga jual (%)", { exact: true }).fill("10");
-  await page
-    .getByRole("button", { name: "Hitung simulasi", exact: true })
-    .click();
-  await page.getByText(/3\.400/, { exact: false }).waitFor();
-  await page.getByRole("tab", { name: "Ringkasan", exact: true }).click();
   await page
     .getByLabel("Pertanyaan untuk AI")
     .fill("Tampilkan September tahun 2026");
@@ -216,7 +201,6 @@ try {
   await page.route(base + "/api/smart/ask?*", (r) =>
     r.fulfill({ status: 429, json: { detail: "Batas AI uji tercapai." } }),
   );
-  await page.getByRole("tab", { name: "Ringkasan", exact: true }).click();
   await page
     .getByRole("button", { name: "Rekomendasi tindakan", exact: true })
     .click();
@@ -225,7 +209,6 @@ try {
     .filter({ hasText: "Batas AI uji tercapai." })
     .waitFor();
   await page.unroute(base + "/api/smart/ask?*");
-  await page.getByRole("tab", { name: "Ringkasan", exact: true }).click();
   await page
     .getByRole("button", { name: "Ringkasan bisnis", exact: true })
     .click();
@@ -233,22 +216,6 @@ try {
     .getByText("Penjualan pada filter pilihan: 2000.", { exact: false })
     .last()
     .waitFor();
-  await page.getByRole("tab", { name: "Ringkasan", exact: true }).click();
-  await page.getByRole("tab", { name: "Ringkasan", exact: true }).focus();
-  await page.keyboard.press("ArrowRight");
-  assert.equal(
-    await page
-      .getByRole("tab", { name: "Simulasi", exact: true })
-      .getAttribute("aria-selected"),
-    "true",
-  );
-  await page.keyboard.press("Home");
-  assert.equal(
-    await page
-      .getByRole("tab", { name: "Ringkasan", exact: true })
-      .getAttribute("aria-selected"),
-    "true",
-  );
   await mkdir("test-artifacts", { recursive: true });
   await page.screenshot({
     path: "test-artifacts/smart-desktop.png",
@@ -282,15 +249,12 @@ try {
     metricPosition.y < 500,
     "financial metrics should appear near the top on mobile",
   );
-  for (const name of ["Simulasi", "Ringkasan"]) {
-    await page.getByRole("tab", { name, exact: true }).click();
-    assert.ok(
-      await page.evaluate(
-        () => document.documentElement.scrollWidth <= innerWidth,
-      ),
-      `mobile overflow in ${name}`,
-    );
-  }
+  assert.ok(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
+    "no mobile overflow",
+  );
   await page.screenshot({
     path: "test-artifacts/smart-mobile.png",
     fullPage: true,
@@ -379,7 +343,7 @@ try {
   assert.equal((await (await fetch(base + "/test/state")).json()).writes, 0);
   assert.deepEqual(errors, []);
   console.log(
-    "PASS smart dashboard: owner-scoped API, summary, simulation, explicit filter application, report download, provider error, mobile, Excel assistance; zero data mutations.",
+    "PASS smart dashboard: owner-scoped API, summary, explicit filter application, report download, provider error, mobile, Excel assistance; zero data mutations.",
   );
 } finally {
   await browser?.close();
