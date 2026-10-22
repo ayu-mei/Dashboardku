@@ -1,17 +1,23 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import {
-  Sparkles,
   Send,
   Download,
   AlertTriangle,
   TrendingUp,
   ArrowRight,
   X,
+  Maximize2,
+  Minimize2,
+  History,
+  Trash2,
+  Pencil,
 } from "lucide-react";
 import { api } from "../services/api";
 import SalesCharts from "./SalesCharts";
 import AIAnswer from "./AIAnswer";
-import yuwiProfile from "../assets/images/yuwi-profile.png";
+import useChatHistory from "../hooks/useChatHistory";
+import { formatDuration } from "../utils/duration";
+import yuwiProfile from "../assets/images/yuwi-profile-anime.png";
 import SummaryCards from "./SummaryCards";
 import { sourceRupiah, monthLabel, filterSummary } from "../utils/format";
 
@@ -23,13 +29,9 @@ function YuwiAvatar() {
   );
 }
 
-export default function SmartDashboard({
-  query,
-  setFilters,
-  onPage,
-  reportData,
-}) {
+export default function SmartDashboard({ query, onPage, reportData, userId }) {
   const [chatOpen, setChatOpen] = useState(false);
+  const [chatExpanded, setChatExpanded] = useState(false);
   const [pendingQuestion, setPendingQuestion] = useState("");
   const chatScroll = useRef(null);
   const chatInput = useRef(null);
@@ -40,19 +42,70 @@ export default function SmartDashboard({
   const [overview, setOverview] = useState(null),
     [error, setError] = useState(""),
     [busy, setBusy] = useState(false);
-  const [messages, setMessages] = useState([]),
-    [question, setQuestion] = useState("");
+  const history = useChatHistory(userId);
+  const { messages, setMessages, question, setQuestion } = history;
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [deleteCandidate, setDeleteCandidate] = useState(null);
+  const [historySearch, setHistorySearch] = useState("");
+  const [renaming, setRenaming] = useState(null);
+  const [newTitle, setNewTitle] = useState("");
+  useLayoutEffect(() => {
+    if (!chatOpen) return;
+    const resize = () => {
+      const bounds = document
+        .getElementById("smart-panel-summary")
+        ?.getBoundingClientRect();
+      if (bounds && chatDialog.current) {
+        chatDialog.current.style.setProperty(
+          "--yuwi-workspace-left",
+          `${bounds.left}px`,
+        );
+        chatDialog.current.style.setProperty(
+          "--yuwi-workspace-width",
+          `${bounds.width}px`,
+        );
+      }
+    };
+    resize();
+    const workspace = document.getElementById("smart-panel-summary");
+    const observer = new ResizeObserver(resize);
+    if (workspace) observer.observe(workspace);
+    window.addEventListener("resize", resize);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("resize", resize);
+    };
+  }, [chatOpen, chatExpanded, overview]);
   const request = useRef(null);
+  const startedAt = useRef(null);
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  useEffect(() => {
+    if (!busy) return;
+    const tick = () =>
+      setElapsedSeconds(
+        Math.floor((performance.now() - startedAt.current) / 1000),
+      );
+    tick();
+    const timer = setInterval(tick, 1000);
+    return () => clearInterval(timer);
+  }, [busy]);
   useEffect(() => {
     const dialog = chatDialog.current;
     if (!dialog) return;
-    if (chatOpen && !dialog.open) {
-      dialog.showModal();
-      chatInput.current?.focus();
+    const mobile = window.matchMedia("(max-width: 1023px)");
+    const syncPanel = () => {
+      if (dialog.open) dialog.close();
+      if (chatOpen) {
+        if (mobile.matches) dialog.showModal();
+        else dialog.show();
+        chatInput.current?.focus({ preventScroll: true });
+      }
       requestAnimationFrame(() => window.dispatchEvent(new Event("resize")));
-    }
-    if (!chatOpen && dialog.open) dialog.close();
-  }, [chatOpen, overview]);
+    };
+    syncPanel();
+    mobile.addEventListener("change", syncPanel);
+    return () => mobile.removeEventListener("change", syncPanel);
+  }, [chatOpen, Boolean(overview)]);
   useEffect(() => {
     const viewport = window.visualViewport;
     if (!chatOpen || !viewport) return;
@@ -120,6 +173,7 @@ export default function SmartDashboard({
   }, [messages, busy, error, chatOpen]);
   function closeChat() {
     setChatOpen(false);
+    setChatExpanded(false);
     requestAnimationFrame(() =>
       document.getElementById("open-smart-chat")?.focus(),
     );
@@ -140,7 +194,9 @@ export default function SmartDashboard({
     setSentAt(sent);
     const controller = new AbortController();
     request.current = controller;
-    const timeout = setTimeout(() => controller.abort(), 100000);
+    const started = performance.now();
+    startedAt.current = started;
+    setElapsedSeconds(0);
     setBusy(true);
     setError("");
     try {
@@ -150,56 +206,33 @@ export default function SmartDashboard({
         signal: controller.signal,
       });
       if (!controller.signal.aborted) {
-        setMessages((v) =>
-          [
-            ...v,
-            {
-              ...result,
-              question: text,
-              sent_at: sent,
-            },
-          ].slice(-12),
-        );
+        setMessages((v) => [
+          ...v,
+          {
+            ...result,
+            question: text,
+            sent_at: sent,
+            duration_seconds: Math.floor((performance.now() - started) / 1000),
+          },
+        ]);
       }
     } catch (e) {
       if (request.current === controller) {
         setQuestion((current) => (current.trim() ? current : text));
         setError(
           controller.signal.aborted
-            ? "Permintaan AI dihentikan atau terlalu lama. Silakan coba lagi."
+            ? controller.signal.reason === "timeout"
+              ? "AI belum merespons dalam batas waktu. Silakan coba lagi."
+              : "Permintaan AI dihentikan."
             : e.message,
         );
       }
     } finally {
-      clearTimeout(timeout);
       if (request.current === controller) {
         setBusy(false);
         request.current = null;
       }
     }
-  }
-  function apply(suggestion) {
-    // Explicit user action; never applies generated filters silently.
-    setFilters((current) => {
-      const next = {
-        ...current,
-        ...Object.fromEntries(
-          Object.entries(suggestion).map(([k, v]) => [
-            k,
-            v == null ? "" : String(v),
-          ]),
-        ),
-      };
-      if ("year" in suggestion || "month" in suggestion) {
-        next.start = suggestion.start || "";
-        next.end = suggestion.end || "";
-      }
-      if (suggestion.start || suggestion.end) {
-        next.year = "";
-        next.month = "";
-      }
-      return next;
-    });
   }
   function download(message) {
     const content = `LAPORAN SMART DASHBOARD REFRAKSI\nDibuat: ${new Date(message.generated_at).toLocaleString("id-ID")}\nFilter: ${filterSummary(message.filters)}\n\n${message.answer}`;
@@ -244,10 +277,13 @@ export default function SmartDashboard({
               tersedia.
             </p>
           )}
-          <div id="smart-panel-summary" className="space-y-5">
+          <div
+            id="smart-panel-summary"
+            className={`yuwi-workspace ${chatOpen ? "yuwi-workspace-open" : ""}`}
+          >
             <div className="min-w-0 space-y-5">
               {reportData?.sales?.length > 0 && (
-                <SalesCharts data={reportData} />
+                <SalesCharts data={reportData} stacked={chatOpen} />
               )}
               <section className="panel">
                 <h3 className="flex items-center gap-2 font-semibold">
@@ -346,7 +382,13 @@ export default function SmartDashboard({
               ref={chatDialog}
               id="smart-chat"
               aria-label="Tanya Yuwi"
-              className="yuwi-chat yuwi-dialog panel"
+              className={`yuwi-chat yuwi-dialog panel ${chatExpanded ? "yuwi-expanded" : ""}`}
+              onKeyDown={(event) => {
+                if (event.key === "Escape" && chatExpanded) {
+                  event.preventDefault();
+                  setChatExpanded(false);
+                }
+              }}
               onCancel={(event) => {
                 event.preventDefault();
                 closeChat();
@@ -365,6 +407,22 @@ export default function SmartDashboard({
                 </div>
                 <button
                   type="button"
+                  className="icon-btn yuwi-expand-toggle"
+                  aria-label={
+                    chatExpanded ? "Kembalikan ukuran chat" : "Perbesar chat"
+                  }
+                  title={chatExpanded ? "Kembalikan ukuran" : "Perbesar"}
+                  aria-pressed={chatExpanded}
+                  onClick={() => setChatExpanded((value) => !value)}
+                >
+                  {chatExpanded ? (
+                    <Minimize2 size={18} />
+                  ) : (
+                    <Maximize2 size={18} />
+                  )}
+                </button>
+                <button
+                  type="button"
                   className="icon-btn"
                   aria-label="Tutup panel AI"
                   onClick={closeChat}
@@ -380,10 +438,24 @@ export default function SmartDashboard({
                 </span>
                 <button
                   type="button"
+                  aria-label="Riwayat chat"
+                  aria-expanded={historyOpen}
+                  aria-controls="yuwi-history"
+                  onClick={() => setHistoryOpen((value) => !value)}
+                >
+                  <History size={14} /> Riwayat
+                </button>
+                <button
+                  type="button"
                   disabled={busy}
+                  title={
+                    busy
+                      ? "Hentikan atau tunggu jawaban sebelum memulai chat baru"
+                      : "Mulai percakapan baru"
+                  }
                   onClick={() => {
-                    setMessages([]);
-                    setQuestion("");
+                    history.newChat();
+                    setHistoryOpen(false);
                     setError("");
                     chatInput.current?.focus();
                   }}
@@ -391,6 +463,175 @@ export default function SmartDashboard({
                   Chat baru
                 </button>
               </div>
+              {history.storageError && (
+                <p role="alert" className="px-4 py-2 text-xs text-amber-800">
+                  {history.storageError}
+                </p>
+              )}
+              {historyOpen && (
+                <section
+                  id="yuwi-history"
+                  className="yuwi-history"
+                  aria-label="Riwayat percakapan"
+                >
+                  <div className="yuwi-history-heading">
+                    <strong>Riwayat chat</strong>
+                    <button
+                      className="icon-btn"
+                      aria-label="Tutup riwayat"
+                      onClick={() => setHistoryOpen(false)}
+                    >
+                      <X size={16} />
+                    </button>
+                  </div>
+                  <p className="muted text-xs">
+                    Tersimpan di browser ini untuk akun Anda.
+                  </p>
+                  {busy && (
+                    <p className="muted text-xs mt-2">
+                      Tunggu jawaban atau tekan Hentikan sebelum berganti chat.
+                    </p>
+                  )}
+                  <input
+                    className="input mt-2 w-full"
+                    aria-label="Cari riwayat chat"
+                    placeholder="Cari percakapan…"
+                    value={historySearch}
+                    onChange={(event) => setHistorySearch(event.target.value)}
+                  />
+                  {!history.conversations.some((item) =>
+                    item.title
+                      .toLocaleLowerCase()
+                      .includes(historySearch.toLocaleLowerCase()),
+                  ) && (
+                    <p className="muted mt-3 text-xs">
+                      Percakapan tidak ditemukan.
+                    </p>
+                  )}
+                  <ul className="yuwi-history-list">
+                    {history.conversations
+                      .filter((item) =>
+                        item.title
+                          .toLocaleLowerCase()
+                          .includes(historySearch.toLocaleLowerCase()),
+                      )
+                      .map((item) => (
+                        <li
+                          key={item.id}
+                          className={
+                            item.id === history.activeId ? "is-active" : ""
+                          }
+                        >
+                          <button
+                            className="yuwi-history-item"
+                            disabled={busy}
+                            aria-current={
+                              item.id === history.activeId ? "true" : undefined
+                            }
+                            onClick={() => {
+                              history.select(item.id);
+                              setHistoryOpen(false);
+                              setDeleteCandidate(null);
+                              setError("");
+                            }}
+                          >
+                            <span>{item.title}</span>
+                            <small>
+                              {item.id === history.activeId ? "Aktif · " : ""}
+                              {new Date(item.updatedAt).toLocaleString(
+                                "id-ID",
+                                {
+                                  day: "numeric",
+                                  month: "short",
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                },
+                              )}
+                            </small>
+                          </button>
+                          <button
+                            className="icon-btn"
+                            aria-label={`Ubah nama chat ${item.title}`}
+                            onClick={() => {
+                              setRenaming(item.id);
+                              setNewTitle(item.title);
+                              setDeleteCandidate(null);
+                            }}
+                          >
+                            <Pencil size={14} />
+                          </button>
+                          {renaming === item.id && (
+                            <form
+                              className="yuwi-history-rename"
+                              onSubmit={(event) => {
+                                event.preventDefault();
+                                if (newTitle.trim()) {
+                                  history.rename(item.id, newTitle);
+                                  setRenaming(null);
+                                  setHistorySearch("");
+                                }
+                              }}
+                            >
+                              <input
+                                autoFocus
+                                className="input"
+                                aria-label="Nama percakapan"
+                                maxLength={80}
+                                value={newTitle}
+                                onChange={(event) =>
+                                  setNewTitle(event.target.value)
+                                }
+                                onKeyDown={(event) => {
+                                  if (event.key === "Escape") {
+                                    event.preventDefault();
+                                    event.stopPropagation();
+                                    setRenaming(null);
+                                  }
+                                }}
+                              />
+                              <button type="submit" disabled={!newTitle.trim()}>
+                                Simpan
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setRenaming(null)}
+                              >
+                                Batal
+                              </button>
+                            </form>
+                          )}
+                          {deleteCandidate === item.id ? (
+                            <div className="yuwi-history-confirm">
+                              <span>Hapus chat ini?</span>
+                              <button
+                                disabled={busy}
+                                onClick={() => {
+                                  history.remove(item.id);
+                                  setDeleteCandidate(null);
+                                  setError("");
+                                }}
+                              >
+                                Hapus
+                              </button>
+                              <button onClick={() => setDeleteCandidate(null)}>
+                                Batal
+                              </button>
+                            </div>
+                          ) : (
+                            <button
+                              className="icon-btn"
+                              disabled={busy}
+                              aria-label={`Hapus chat ${item.title}`}
+                              onClick={() => setDeleteCandidate(item.id)}
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          )}
+                        </li>
+                      ))}
+                  </ul>
+                </section>
+              )}
               <div
                 ref={chatScroll}
                 role="log"
@@ -434,24 +675,14 @@ export default function SmartDashboard({
                             { hour: "2-digit", minute: "2-digit" },
                           )}
                         </p>
-                        {m.suggested_filters &&
-                          Object.keys(m.suggested_filters).length > 0 && (
-                            <div className="mt-4 rounded-lg bg-emerald-50 p-3">
-                              <p className="text-sm">
-                                Usulan filter:{" "}
-                                {filterSummary({
-                                  ...m.filters,
-                                  ...m.suggested_filters,
-                                })}
-                              </p>
-                              <button
-                                className="btn mt-3"
-                                onClick={() => apply(m.suggested_filters)}
-                              >
-                                Terapkan filter usulan
-                              </button>
-                            </div>
-                          )}
+                        {Number.isFinite(m.duration_seconds) && (
+                          <p
+                            className="muted mt-1 text-[10px]"
+                            data-testid="ai-duration"
+                          >
+                            Diproses dalam {formatDuration(m.duration_seconds)}
+                          </p>
+                        )}
                         <button
                           className="mt-3 inline-flex min-h-9 items-center gap-1.5 text-xs text-slate-500 hover:text-navy"
                           onClick={() => download(m)}
@@ -480,10 +711,15 @@ export default function SmartDashboard({
                         <i />
                         <i />
                       </span>
-                      Yuwi sedang menganalisis…{" "}
+                      <span>
+                        Yuwi sedang menganalisis ·{" "}
+                        <span aria-live="off" data-testid="ai-elapsed">
+                          {formatDuration(elapsedSeconds)}
+                        </span>
+                      </span>{" "}
                       <button
                         className="underline"
-                        onClick={() => request.current?.abort()}
+                        onClick={() => request.current?.abort("user")}
                       >
                         Hentikan
                       </button>
@@ -552,13 +788,13 @@ export default function SmartDashboard({
             </dialog>
             <button
               id="open-smart-chat"
-              className={`btn fixed bottom-5 right-4 z-30 shadow-lg ${chatOpen ? "hidden" : ""}`}
+              className={`btn yuwi-launcher fixed bottom-5 right-4 z-30 shadow-lg ${chatOpen ? "hidden" : ""}`}
               aria-haspopup="dialog"
               aria-expanded={chatOpen}
               aria-controls="smart-chat"
               onClick={() => setChatOpen(true)}
             >
-              <Sparkles size={17} /> Tanya Yuwi
+              <YuwiAvatar /> Tanya Yuwi
             </button>
           </div>
           <p className="text-xs text-slate-500">

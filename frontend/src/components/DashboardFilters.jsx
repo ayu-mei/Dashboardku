@@ -28,8 +28,8 @@ export default function DashboardFilters({
   );
   return (
     <section className="panel mb-5" aria-label="Filter laporan">
-      <div className="flex flex-wrap items-end gap-3">
-        <label className="min-w-0 flex-1 sm:max-w-44">
+      <div className="dashboard-filter-primary">
+        <label className="dashboard-filter-year min-w-0">
           Tahun
           <select
             aria-label="Tahun"
@@ -42,7 +42,7 @@ export default function DashboardFilters({
             ))}
           </select>
         </label>
-        <label className="min-w-0 flex-1 sm:max-w-52">
+        <label className="dashboard-filter-month min-w-0">
           Bulan
           <select
             aria-label="Bulan"
@@ -58,7 +58,7 @@ export default function DashboardFilters({
           </select>
         </label>
         <button
-          className="btn-secondary !px-3"
+          className="dashboard-filter-reset btn-secondary !px-3"
           onClick={onReset}
           aria-label="Reset Filter"
           title="Reset filter"

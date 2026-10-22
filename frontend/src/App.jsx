@@ -116,7 +116,12 @@ export default function App() {
   return (
     <>
       <DashboardLayout page={page} onPage={setPage} onLogout={() => logout()}>
-        <DashboardPage page={page} onPage={setPage} />
+        <DashboardPage
+          key={session.user.id}
+          userId={session.user.id}
+          page={page}
+          onPage={setPage}
+        />
       </DashboardLayout>
       {remaining !== null && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4">

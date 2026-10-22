@@ -12,7 +12,7 @@ async def generate(question,context,task):
         return {'answer':'Periksa tanggal, jumlah dan nilai total pada header sumber. HPP yang belum tersedia tidak diganti nol. Saran ini tidak mengubah pencocokan kolom.', 'suggested_filters':None, 'model':'test-provider'}
     if 'Tampilkan' in question:
         return {'answer':'Terapkan filter September 2026 untuk membaca periode tersebut.', 'suggested_filters':{'year':2026,'month':9},'model':'test-provider'}
-    return {'answer':f"Penjualan pada filter pilihan: {context['metrics']['sales']}. Periksa transaksi yang tampak sama sebelum menghapus. Tidak ada data diubah.", 'suggested_filters':None,'model':'test-provider'}
+    return {'answer':f"Penjualan pada filter pilihan: {context['metrics']['sales']}. Periksa transaksi yang tampak sama sebelum menghapus. Tidak ada data diubah.\n\n| Keterangan | Nilai |\n| --- | ---: |\n| Penjualan | **Rp7.000** |\n| Catatan | <script>contoh</script> |", 'suggested_filters':None,'model':'test-provider'}
 smart.generate = generate
 
 @app.post('/test/smart-seed')

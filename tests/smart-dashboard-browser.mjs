@@ -69,6 +69,7 @@ try {
   });
   page.on("pageerror", (e) => errors.push(e.message));
   page.setDefaultTimeout(15000);
+  let authUserId = "test-user";
   await page.route("https://smart-ui-test.supabase.co/**", (r) =>
     r.fulfill({
       headers: { "Access-Control-Allow-Origin": "*" },
@@ -76,7 +77,7 @@ try {
         access_token: "test-access",
         refresh_token: "test-refresh",
         expires_in: 7200,
-        user: { id: "test-user" },
+        user: { id: authUserId },
       },
     }),
   );
@@ -119,6 +120,36 @@ try {
       .getByRole("dialog", { name: "Tanya Yuwi", exact: true })
       .isVisible(),
     false,
+  );
+  const widthBeforeHide = await page
+    .locator("main")
+    .evaluate((el) => el.getBoundingClientRect().width);
+  await page
+    .getByRole("button", { name: "Sembunyikan navigasi", exact: true })
+    .click();
+  await page.waitForFunction(
+    () =>
+      document.querySelector("#dashboard-navigation").getBoundingClientRect()
+        .right <= 1,
+  );
+  assert.ok(
+    (await page
+      .locator("main")
+      .evaluate((el) => el.getBoundingClientRect().width)) >
+      widthBeforeHide + 200,
+  );
+  assert.equal(
+    await page.locator("#dashboard-navigation").evaluate((el) => el.inert),
+    true,
+  );
+  await page
+    .getByRole("button", { name: "Tampilkan navigasi", exact: true })
+    .click();
+  await page.waitForFunction(
+    () =>
+      Math.abs(
+        document.querySelector("main").getBoundingClientRect().left - 240,
+      ) < 1,
   );
   const yearSelect = page.getByLabel("Tahun", { exact: true });
   await yearSelect.click();
@@ -172,6 +203,23 @@ try {
     "chart must remain visible with AI response",
   );
   assert.equal(await page.locator(".yuwi-message-name").count(), 0);
+  assert.ok(
+    await page
+      .getByRole("columnheader", { name: "Keterangan" })
+      .first()
+      .isVisible(),
+  );
+  assert.ok(
+    await page
+      .getByRole("cell", { name: "Rp7.000", exact: true })
+      .first()
+      .isVisible(),
+  );
+  assert.equal(await page.locator(".ai-answer-table script").count(), 0);
+  assert.match(
+    await page.getByTestId("ai-duration").first().textContent(),
+    /Diproses dalam \d+ (detik|menit)/,
+  );
   assert.equal(
     await page
       .locator(".yuwi-user time")
@@ -182,7 +230,21 @@ try {
   const assistantBox = await page
     .getByRole("dialog", { name: "Tanya Yuwi", exact: true })
     .boundingBox();
-  assert.ok(assistantBox.width <= 440, "chat should open as a floating window");
+  assert.ok(
+    assistantBox.width <= 440,
+    "chat panel should leave room for charts",
+  );
+  const chartBox = await page.getByTestId("time-chart").boundingBox();
+  assert.ok(
+    chartBox.x + chartBox.width <= assistantBox.x,
+    "desktop chat must not cover the chart",
+  );
+  assert.equal(
+    await page.locator("#smart-chat").evaluate((el) => el.matches(":modal")),
+    false,
+    "desktop dashboard must remain interactive",
+  );
+  assert.equal(await page.locator("#open-smart-chat img").count(), 1);
   const chatInput = page.getByLabel("Pertanyaan untuk AI");
   const repliesBefore = await page
     .getByRole("log", { name: "Percakapan AI" })
@@ -243,11 +305,70 @@ try {
   await page
     .getByLabel("Pertanyaan untuk AI")
     .fill("Pertanyaan berikutnya yang sedang disiapkan");
+  const panelBeforeExpand = await page.locator("#smart-chat").boundingBox();
+  await page
+    .getByRole("button", { name: "Perbesar chat", exact: true })
+    .click();
+  const expandedPanel = await page.locator("#smart-chat").boundingBox();
+  assert.ok(expandedPanel.width > panelBeforeExpand.width * 1.5);
+  await page
+    .getByRole("button", { name: "Sembunyikan navigasi", exact: true })
+    .click();
+  await page.waitForFunction(() => {
+    const workspace = document
+      .getElementById("smart-panel-summary")
+      .getBoundingClientRect();
+    const chat = document.getElementById("smart-chat").getBoundingClientRect();
+    return (
+      workspace.left < 40 &&
+      Math.abs(workspace.left - chat.left) < 2 &&
+      Math.abs(workspace.width - chat.width) < 2
+    );
+  });
+  await page
+    .getByRole("button", { name: "Tampilkan navigasi", exact: true })
+    .click();
+  await page.waitForFunction(
+    () =>
+      document.getElementById("smart-chat").getBoundingClientRect().left >= 271,
+  );
+
+  assert.equal(
+    await page.getByLabel("Pertanyaan untuk AI").inputValue(),
+    "Pertanyaan berikutnya yang sedang disiapkan",
+  );
+  assert.ok(
+    await page
+      .getByRole("button", { name: "Hentikan", exact: true })
+      .isVisible(),
+  );
+  await page.screenshot({ path: "test-artifacts/yuwi-maximized.png" });
+  await page
+    .getByRole("button", { name: "Kembalikan ukuran chat", exact: true })
+    .click();
+  assert.ok(
+    Math.abs(
+      (await page.locator("#smart-chat").boundingBox()).width -
+        panelBeforeExpand.width,
+    ) < 2,
+  );
+  assert.equal(
+    await page.getByLabel("Pertanyaan untuk AI").inputValue(),
+    "Pertanyaan berikutnya yang sedang disiapkan",
+  );
   releaseReply();
 
-  await page
-    .getByText("Usulan filter: September 2026", { exact: true })
-    .waitFor();
+  await page.waitForFunction(
+    () => !document.querySelector('[role="log"][aria-busy="true"]'),
+  );
+  assert.equal(
+    await page.getByText("Usulan filter:", { exact: false }).count(),
+    0,
+  );
+  assert.equal(
+    await page.getByRole("button", { name: "Terapkan filter usulan" }).count(),
+    0,
+  );
   assert.equal(
     await page.getByLabel("Pertanyaan untuk AI").inputValue(),
     "Pertanyaan berikutnya yang sedang disiapkan",
@@ -261,9 +382,7 @@ try {
       response.url().includes("month=9") &&
       response.status() === 200,
   );
-  await page
-    .getByRole("button", { name: "Terapkan filter usulan", exact: true })
-    .click();
+  await page.getByLabel("Bulan", { exact: true }).selectOption("9");
   await updatedOverview;
   assert.equal(
     await chatLog.locator("article").count(),
@@ -352,6 +471,45 @@ try {
     ),
     "mobile horizontal overflow",
   );
+  await page.getByLabel("Bulan", { exact: true }).selectOption("");
+  for (const width of [320, 360, 390, 430, 768]) {
+    await page.setViewportSize({ width, height: 844 });
+    const fits = await page
+      .getByLabel("Bulan", { exact: true })
+      .evaluate((el) => {
+        const style = getComputedStyle(el);
+        const context = document.createElement("canvas").getContext("2d");
+        context.font = style.font;
+        return (
+          el.clientWidth -
+            parseFloat(style.paddingLeft) -
+            parseFloat(style.paddingRight) >=
+          context.measureText(el.selectedOptions[0].textContent).width
+        );
+      });
+    assert.ok(fits, `month label must not overlap the arrow at ${width}px`);
+    assert.ok(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= window.innerWidth,
+      ),
+      `no overflow at ${width}px`,
+    );
+  }
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page
+    .getByRole("region", { name: "Filter laporan" })
+    .scrollIntoViewIfNeeded();
+  await page.screenshot({
+    path: "test-artifacts/mobile-dashboard-filters.png",
+  });
+  const monthResponse = page.waitForResponse(
+    (response) =>
+      response.url().includes("/api/smart/overview?") &&
+      response.url().includes("month=9") &&
+      response.status() === 200,
+  );
+  await page.getByLabel("Bulan", { exact: true }).selectOption("9");
+  await monthResponse;
   const metricPosition = await page
     .getByRole("region", { name: "Ringkasan keuangan" })
     .boundingBox();
@@ -427,6 +585,67 @@ try {
       .count(),
     0,
   );
+  await page.getByRole("button", { name: "Riwayat chat", exact: true }).click();
+  await page
+    .locator(".yuwi-history-item")
+    .filter({ hasText: "Ringkas penjualan saya" })
+    .click();
+  assert.ok(
+    (await page
+      .getByRole("log", { name: "Percakapan AI" })
+      .locator("article")
+      .count()) > 0,
+    "new chat keeps old messages",
+  );
+  await page.getByLabel("Pertanyaan untuk AI").fill("Draft yang disimpan");
+  await page.reload();
+  await page.getByRole("button", { name: "Tanya Yuwi", exact: true }).click();
+  assert.equal(
+    await page.getByLabel("Pertanyaan untuk AI").inputValue(),
+    "Draft yang disimpan",
+  );
+  assert.ok(
+    (await page
+      .getByRole("log", { name: "Percakapan AI" })
+      .locator("article")
+      .count()) > 0,
+  );
+  await page.getByRole("button", { name: "Riwayat chat", exact: true }).click();
+  await page.screenshot({ path: "test-artifacts/yuwi-history-mobile.png" });
+  await page
+    .getByRole("button", {
+      name: "Hapus chat Ringkas penjualan saya",
+      exact: true,
+    })
+    .click();
+  await page.getByRole("button", { name: "Batal", exact: true }).click();
+  assert.equal(
+    await page
+      .locator(".yuwi-history-item")
+      .filter({ hasText: "Ringkas penjualan saya" })
+      .count(),
+    1,
+  );
+  await page
+    .getByRole("button", {
+      name: "Ubah nama chat Ringkas penjualan saya",
+      exact: true,
+    })
+    .click();
+  await page
+    .getByRole("textbox", { name: "Nama percakapan", exact: true })
+    .fill("Evaluasi September");
+  await page.getByRole("button", { name: "Simpan", exact: true }).click();
+  await page.getByLabel("Cari riwayat chat").fill("evaluasi");
+  assert.equal(await page.locator(".yuwi-history-item").count(), 1);
+  await page.getByLabel("Cari riwayat chat").fill("tidak-ditemukan");
+  await page
+    .getByText("Percakapan tidak ditemukan.", { exact: true })
+    .waitFor();
+  await page.getByLabel("Cari riwayat chat").fill("");
+  await page
+    .getByRole("button", { name: "Tutup riwayat", exact: true })
+    .click();
   assert.ok((await page.locator(".yuwi-avatar img").count()) > 0);
   assert.ok(
     await page
@@ -469,10 +688,62 @@ try {
     })
     .waitFor();
   assert.equal((await (await fetch(base + "/test/state")).json()).writes, 0);
+  await page.reload();
+  await page.getByRole("button", { name: "Keluar", exact: true }).click();
+  authUserId = "different-user";
+  await page.getByLabel("Email", { exact: true }).fill("other@example.invalid");
+  await page.getByLabel("Password", { exact: true }).fill("test-password");
+  await page.getByRole("button", { name: "Masuk", exact: true }).click();
+  await page.getByRole("button", { name: "Tanya Yuwi", exact: true }).click();
+  assert.equal(
+    await page
+      .getByRole("log", { name: "Percakapan AI" })
+      .locator("article")
+      .count(),
+    0,
+    "another account must not see old messages",
+  );
+  await page
+    .getByRole("button", { name: "Tutup panel AI", exact: true })
+    .click();
+  await page.getByRole("button", { name: "Keluar", exact: true }).click();
+  authUserId = "test-user";
+  await page.getByLabel("Email", { exact: true }).fill("test@example.invalid");
+  await page.getByLabel("Password", { exact: true }).fill("test-password");
+  await page.getByRole("button", { name: "Masuk", exact: true }).click();
+  await page.getByRole("button", { name: "Tanya Yuwi", exact: true }).click();
+  assert.ok(
+    (await page
+      .getByRole("log", { name: "Percakapan AI" })
+      .locator("article")
+      .count()) > 0,
+    "returning account restores history",
+  );
+  await page.getByRole("button", { name: "Riwayat chat", exact: true }).click();
+  await page
+    .getByRole("button", {
+      name: "Hapus chat Evaluasi September",
+      exact: true,
+    })
+    .click();
+  await page
+    .locator(".yuwi-history-confirm")
+    .getByRole("button", { name: "Hapus", exact: true })
+    .click();
+  assert.equal(
+    await page
+      .locator(".yuwi-history-item")
+      .filter({ hasText: "Evaluasi September" })
+      .count(),
+    0,
+  );
   assert.deepEqual(errors, []);
   console.log(
     "PASS smart dashboard: owner-scoped API, summary, explicit filter application, report download, provider error, mobile, Excel assistance; zero data mutations.",
   );
+} catch (error) {
+  console.error(error);
+  throw error;
 } finally {
   await browser?.close();
   await server?.httpServer.close();

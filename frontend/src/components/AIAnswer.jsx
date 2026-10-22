@@ -11,6 +11,15 @@ function inline(text) {
   );
 }
 
+function cells(line) {
+  return line
+    .trim()
+    .replace(/^\|/, "")
+    .replace(/\|$/, "")
+    .split(/(?<!\\)\|/)
+    .map((cell) => cell.trim().replace(/\\\|/g, "|"));
+}
+
 export default function AIAnswer({ children, className = "" }) {
   const lines = String(children || "").split("\n");
   const blocks = [];
@@ -18,6 +27,67 @@ export default function AIAnswer({ children, className = "" }) {
     const line = lines[i];
     if (!line.trim()) {
       i++;
+      continue;
+    }
+    const headers = cells(line);
+    const separators = cells(lines[i + 1] || "");
+    if (
+      line.includes("|") &&
+      headers.length > 1 &&
+      headers.length === separators.length &&
+      separators.every((cell) => /^:?-{3,}:?$/.test(cell))
+    ) {
+      const rows = [];
+      const align = separators.map((cell) =>
+        cell.endsWith(":")
+          ? cell.startsWith(":")
+            ? "center"
+            : "right"
+          : "left",
+      );
+      i += 2;
+      while (i < lines.length && lines[i].trim() && lines[i].includes("|")) {
+        const row = cells(lines[i]);
+        if (row.length !== headers.length) break;
+        rows.push(row);
+        i++;
+      }
+      blocks.push(
+        <div
+          key={`table-${i}`}
+          className="ai-table-scroll"
+          role="region"
+          aria-label="Tabel jawaban Yuwi"
+          tabIndex={0}
+        >
+          <table className="ai-answer-table">
+            <thead>
+              <tr>
+                {headers.map((cell, index) => (
+                  <th
+                    key={index}
+                    scope="col"
+                    style={{ textAlign: align[index] }}
+                  >
+                    {inline(cell)}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((row, index) => (
+                <tr key={index}>
+                  {row.map((cell, column) => (
+                    <td key={column} style={{ textAlign: align[column] }}>
+                      {inline(cell)}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>,
+      );
       continue;
     }
     const numbered = /^\s*\d+[.)]\s+/;

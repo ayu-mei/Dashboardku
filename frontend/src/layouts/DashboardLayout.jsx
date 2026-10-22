@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Table2,
   ChartNoAxesCombined,
@@ -7,6 +7,8 @@ import {
   LogOut,
   ShieldCheck,
   Sparkles,
+  PanelLeftClose,
+  PanelLeftOpen,
 } from "lucide-react";
 const links = [
   ["dashboard", "Smart Dashboard", Sparkles],
@@ -15,8 +17,24 @@ const links = [
 ];
 export default function DashboardLayout({ page, onPage, onLogout, children }) {
   const [open, setOpen] = useState(false);
+  const [sidebarHidden, setSidebarHidden] = useState(false);
+  const [desktop, setDesktop] = useState(
+    () => window.matchMedia("(min-width: 768px)").matches,
+  );
+  useEffect(() => {
+    const media = window.matchMedia("(min-width: 768px)");
+    const resize = () => {
+      setDesktop(media.matches);
+      setOpen(false);
+    };
+    media.addEventListener("change", resize);
+    return () => media.removeEventListener("change", resize);
+  }, []);
+  const visible = desktop ? !sidebarHidden : open;
   return (
-    <div className="min-h-dvh">
+    <div
+      className={`dashboard-shell min-h-dvh ${sidebarHidden ? "sidebar-collapsed" : ""}`}
+    >
       {open && (
         <button
           className="fixed inset-0 z-30 bg-slate-950/50 md:hidden"
@@ -25,7 +43,10 @@ export default function DashboardLayout({ page, onPage, onLogout, children }) {
         />
       )}
       <aside
-        className={`fixed inset-y-0 left-0 z-40 flex w-60 flex-col bg-navy px-5 py-7 text-white transition-transform md:translate-x-0 ${open ? "translate-x-0" : "-translate-x-full"}`}
+        id="dashboard-navigation"
+        aria-hidden={!visible}
+        inert={!visible}
+        className={`dashboard-sidebar fixed inset-y-0 left-0 z-40 flex w-60 flex-col bg-navy px-5 py-7 text-white ${open ? "mobile-open" : ""}`}
       >
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -69,15 +90,35 @@ export default function DashboardLayout({ page, onPage, onLogout, children }) {
           Transaksi dilindungi login dan hak akses per akun.
         </div>
       </aside>
-      <div className="min-w-0 md:ml-60">
+      <div className="dashboard-main min-w-0">
         <header className="sticky top-0 z-20 flex h-17 items-center justify-between gap-3 border-b border-slate-200 bg-white/95 px-4 backdrop-blur sm:px-8">
           <div className="flex min-w-0 items-center gap-3">
             <button
-              className="md:hidden"
-              onClick={() => setOpen(true)}
-              aria-label="Buka menu"
+              className="shrink-0 rounded-lg p-2 text-slate-600 hover:bg-slate-100 hover:text-navy focus-visible:outline-2 focus-visible:outline-emerald-700"
+              onClick={() => {
+                if (desktop) {
+                  setSidebarHidden((value) => !value);
+                } else {
+                  setOpen((value) => !value);
+                }
+              }}
+              aria-label={
+                visible ? "Sembunyikan navigasi" : "Tampilkan navigasi"
+              }
+              title={visible ? "Sembunyikan navigasi" : "Tampilkan navigasi"}
+              aria-expanded={visible}
+              aria-controls="dashboard-navigation"
             >
-              <Menu size={21} />
+              <span className="hidden md:inline">
+                {sidebarHidden ? (
+                  <PanelLeftOpen size={19} />
+                ) : (
+                  <PanelLeftClose size={19} />
+                )}
+              </span>
+              <span className="md:hidden">
+                {open ? <X size={20} /> : <Menu size={21} />}
+              </span>
             </button>
             <span className="truncate text-xs text-slate-500">
               Workspace /{" "}
@@ -91,7 +132,7 @@ export default function DashboardLayout({ page, onPage, onLogout, children }) {
             <span>Keluar</span>
           </button>
         </header>
-        <main className="mx-auto max-w-[1700px] p-4 sm:p-8">{children}</main>
+        <main className="w-full p-4 sm:p-8">{children}</main>
       </div>
     </div>
   );

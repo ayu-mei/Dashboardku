@@ -110,6 +110,12 @@ try {
         json: {
           sales: [],
           expenses: [],
+          rows: { sales: 0 },
+          forecast: { available: false, note: "Data uji belum tersedia." },
+          alerts: [],
+          missing_hpp_count: 0,
+          ai_configured: false,
+          generated_at: new Date().toISOString(),
           metrics: {
             sales: "0",
             hpp: "0",
@@ -141,6 +147,7 @@ try {
     [768, 1024],
     [390, 844],
     [360, 800],
+    [320, 740],
   ]) {
     await page.setViewportSize({ width, height });
     await page.waitForTimeout(550);
@@ -156,12 +163,27 @@ try {
         .isVisible(),
     );
     assert.equal(await page.locator(".login-brand").isVisible(), width > 900);
+    const mascot = page.locator(
+      width > 900
+        ? ".login-mascot .yuwi-blink-base"
+        : ".login-mobile-yuwi .yuwi-blink-base",
+    );
+    assert.ok(await mascot.isVisible());
+    await mascot.evaluate((img) => img.decode());
+    assert.ok(await mascot.evaluate((img) => img.naturalWidth > 0));
     await page.screenshot({
       path: `test-artifacts/login/${width}.png`,
       fullPage: true,
     });
   }
   await page.setViewportSize({ width: 1440, height: 900 });
+  await page.locator('.login-mascot[data-blink-ready="true"]').waitFor();
+  await page.locator(".login-mascot .yuwi-blink-eyes").evaluateAll(eyes => eyes.forEach(eye => eye.getAnimations().forEach(animation => {animation.pause(); animation.currentTime = 1075;})));
+  assert.equal(await page.locator(".login-mascot .yuwi-blink-left").evaluate(el => getComputedStyle(el).opacity), "1");
+  await page.locator(".login-mascot").screenshot({path:"test-artifacts/login/yuwi-eyes-closed.png"});
+  await page.locator(".login-mascot .yuwi-blink-eyes").evaluateAll(eyes => eyes.forEach(eye => eye.getAnimations().forEach(animation => {animation.currentTime = 0;})));
+  assert.equal(await page.locator(".login-mascot .yuwi-blink-left").evaluate(el => getComputedStyle(el).opacity), "0");
+  await page.locator(".login-mascot").screenshot({path:"test-artifacts/login/yuwi-eyes-open.png"});
   const contrasts = await page.evaluate(() => {
     const rgb = (value) =>
       (value.match(/[\d.]+/g) || []).slice(0, 3).map(Number);
@@ -285,7 +307,7 @@ try {
   reply = "success";
   await password.press("Enter");
   await page
-    .getByRole("heading", { name: "Dashboard Penjualan", exact: true })
+    .getByRole("heading", { name: "Smart Dashboard", exact: true })
     .waitFor();
   assert.equal(
     await page.getByText("AKSES WORKSPACE", { exact: true }).count(),
@@ -293,21 +315,27 @@ try {
   );
   await page.reload();
   await page
-    .getByRole("heading", { name: "Dashboard Penjualan", exact: true })
+    .getByRole("heading", { name: "Smart Dashboard", exact: true })
     .waitFor();
   // Force an expired persisted access token: SDK must refresh and keep login.
   const beforeRefresh = calls;
   await page.evaluate(() => {
     const key = Object.keys(localStorage).find(
-      (key) => key.startsWith("refraksi-auth-") && !key.endsWith("-activity"),
+      (key) => key === "refraksi-auth-https://login-test.supabase.co",
     );
     const value = JSON.parse(localStorage.getItem(key));
     value.expires_at = Math.floor(Date.now() / 1000) - 10;
+    const parts = value.access_token.split(".");
+    parts[1] = btoa(JSON.stringify({ sub: "test-user", exp: value.expires_at }))
+      .replace(/=/g, "")
+      .replace(/\+/g, "-")
+      .replace(/\//g, "_");
+    value.access_token = parts.join(".");
     localStorage.setItem(key, JSON.stringify(value));
   });
   await page.reload();
   await page
-    .getByRole("heading", { name: "Dashboard Penjualan", exact: true })
+    .getByRole("heading", { name: "Smart Dashboard", exact: true })
     .waitFor();
   assert.ok(calls > beforeRefresh, "Expired token must be refreshed");
   await page.route("https://api-login-test.onrender.com/**", (route) =>
@@ -319,14 +347,14 @@ try {
   await page.getByRole("alert").waitFor();
   assert.ok(
     await page
-      .getByRole("heading", { name: "Dashboard Penjualan", exact: true })
+      .getByRole("heading", { name: "Smart Dashboard", exact: true })
       .isVisible(),
   );
   await page.unroute("https://api-login-test.onrender.com/**");
   const second = await page.context().newPage();
   await second.goto(page.url());
   await second
-    .getByRole("heading", { name: "Dashboard Penjualan", exact: true })
+    .getByRole("heading", { name: "Smart Dashboard", exact: true })
     .waitFor();
   await second.getByRole("button", { name: "Keluar", exact: true }).click();
   await page
@@ -338,7 +366,7 @@ try {
   await password.fill("ui-test-password");
   await password.press("Enter");
   await page
-    .getByRole("heading", { name: "Dashboard Penjualan", exact: true })
+    .getByRole("heading", { name: "Smart Dashboard", exact: true })
     .waitFor();
   await page.clock.install();
   await page.clock.fastForward(28 * 60 * 1000 + 1000);
@@ -363,10 +391,12 @@ try {
   );
   assert.equal(
     await page
-      .locator(".login-preview-chart")
+      .locator(".login-mascot")
       .evaluate((el) => getComputedStyle(el).animationName),
     "none",
   );
+  assert.equal(await page.locator(".login-mascot .yuwi-blink-left").evaluate(el => getComputedStyle(el).animationName), "none");
+  assert.equal(await page.locator(".login-mascot .yuwi-blink-left").evaluate(el => getComputedStyle(el).opacity), "0");
   assert.deepEqual(errors, []);
   console.log(
     "PASS: desktop/laptop/tablet/mobile 360–1440px, required labels/autocomplete, keyboard/focus/Enter, show/hide password, loading/double-submit guard, sanitized errors, successful login, persisted refresh, automatic token renewal, network failure, cross-tab logout, idle warning/extension/expiry, reduced motion, key text contrast >=4.5, no JavaScript errors. Auth responses mocked; production accounts untouched.",

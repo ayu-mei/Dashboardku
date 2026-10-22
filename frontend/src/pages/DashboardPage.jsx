@@ -10,7 +10,7 @@ import SourceDataPanel from "../components/SourceDataPanel";
 import SmartDashboard from "../components/SmartDashboard";
 import RecordEditor from "../components/RecordEditor";
 import { Loading, ErrorMessage } from "../components/Feedback";
-export default function DashboardPage({ page, onPage }) {
+export default function DashboardPage({ page, onPage, userId }) {
   const model = useDashboard(
       page === "analysis" ? "/api/analysis" : "/api/dashboard",
       page,
@@ -183,6 +183,7 @@ export default function DashboardPage({ page, onPage }) {
       {model.loading && <Loading />}
       {page === "dashboard" && (
         <SmartDashboard
+          userId={userId}
           reportData={model.data}
           query={model.query}
           setFilters={model.setFilters}

@@ -5,7 +5,7 @@ from collections import defaultdict, deque
 from datetime import datetime, timezone
 from time import monotonic
 from typing import Literal
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 from starlette.concurrency import run_in_threadpool
 from app.models.records import Filters
@@ -55,7 +55,30 @@ def configured():
     return bool(config.cloudflare_api_token and re.fullmatch(r'[a-fA-F0-9]{32}', config.cloudflare_account_id))
 
 
-async def limited_generate(token, question, context, task):
+async def generate_until_disconnect(request, question, context, task):
+    async def disconnected():
+        while True:
+            message = await request.receive()
+            if message['type'] == 'http.disconnect':
+                return
+
+    generation = asyncio.create_task(generate(question, context, task))
+    disconnect = asyncio.create_task(disconnected())
+    try:
+        done, _ = await asyncio.wait(
+            (generation, disconnect), return_when=asyncio.FIRST_COMPLETED
+        )
+        if disconnect in done:
+            raise HTTPException(499, 'Permintaan AI dihentikan.')
+        return await generation
+    finally:
+        for pending in (generation, disconnect):
+            if not pending.done():
+                pending.cancel()
+        await asyncio.gather(generation, disconnect, return_exceptions=True)
+
+
+async def limited_generate(token, question, context, task, request=None):
     owner = token.user_id
     now = monotonic()
     # Only request timestamps/IDs are stored; no business context or conversation.
@@ -74,6 +97,8 @@ async def limited_generate(token, question, context, task):
     _active.add(owner)
     try:
         async with _slots:
+            if request is not None:
+                return await generate_until_disconnect(request, question, context, task)
             return await generate(question, context, task)
     finally:
         _active.discard(owner)
@@ -88,18 +113,18 @@ async def overview(filters: Filters = Depends(report_filters), token=Depends(aut
 
 
 @router.post('/ask')
-async def ask(body: Ask, filters: Filters = Depends(report_filters), token=Depends(authenticated)):
+async def ask(body: Ask, request: Request, filters: Filters = Depends(report_filters), token=Depends(authenticated)):
     if body.task == 'chat' and not body.question.strip():
         raise HTTPException(422, 'Tulis pertanyaan terlebih dahulu.')
     sales, expenses, datasets, _ = await load(token)
     context = await run_in_threadpool(evidence, sales, expenses, datasets, filters)
-    result = await limited_generate(token, body.question, context, body.task)
+    result = await limited_generate(token, body.question, context, body.task, request)
     return {**result, 'filters':filters.model_dump(mode='json'), 'metrics':context['metrics'],
             'generated_at':datetime.now(timezone.utc).isoformat(),
             'note':'Jawaban AI perlu diperiksa terhadap angka dashboard. Tidak ada data yang diubah.'}
 
 
 @router.post('/import-help')
-async def import_help(body: ImportHelp, token=Depends(authenticated)):
+async def import_help(body: ImportHelp, request: Request, token=Depends(authenticated)):
     context = {'excel_review':body.model_dump(), 'scope':'Hanya metadata header dan masalah preview yang diberikan; tidak membaca file asli atau mengubah hasil validasi.'}
-    return await limited_generate(token, '', context, 'import')
+    return await limited_generate(token, '', context, 'import', request)

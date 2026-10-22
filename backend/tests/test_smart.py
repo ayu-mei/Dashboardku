@@ -109,7 +109,7 @@ def test_all_smart_endpoints_require_auth(monkeypatch):
 @pytest.mark.anyio
 @pytest.mark.parametrize('content,expected_filters', [
     ('<think>internal</think>{"scope":"dashboard","answer":"Laba belum tersedia.","suggested_filters":{"sql":"delete"}}', None),
-    ('{"scope":"dashboard","answer":"Laba belum tersedia.","suggested_filters":{"month":"2026-09"}}', {'year':2026,'month':9}),
+    ('{"scope":"dashboard","answer":"Laba belum tersedia.","suggested_filters":{"month":"2026-09"}}', None),
     ('{"scope":"dashboard","answer":"Laba belum tersedia.","suggested_filters":{"month":"2026-09","year":2025}}', None),
     ('"Laba belum tersedia."\n"suggested_filters": {"month":"2026-09"}', 'invalid'),
     ('"Laba belum tersedia."', 'invalid'),
@@ -131,10 +131,9 @@ async def test_cloudflare_response_and_invalid_filter_suggestion(monkeypatch,con
     monkeypatch.setattr(smart,'settings',lambda:SimpleNamespace(cloudflare_api_token='SECRET',cloudflare_account_id='a'*32))
     monkeypatch.setattr(smart.httpx,'AsyncClient',Client)
     if expected_filters == 'invalid':
-        from fastapi import HTTPException
-        with pytest.raises(HTTPException) as exc:
-            await smart.generate('Apa laba?', {'metrics':{'net':None}})
-        assert exc.value.status_code == 502
+        import asyncio
+        with pytest.raises(TimeoutError):
+            await asyncio.wait_for(smart.generate('Apa laba?', {'metrics':{'net':None}}), timeout=0.1)
         return
     result=await smart.generate('Apa laba?',{'metrics':{'net':None}})
     assert result['answer']=='Laba belum tersedia.'
@@ -207,3 +206,65 @@ async def test_model_scope_decision_cannot_pass_its_off_topic_answer(monkeypatch
     result=await smart.generate('Jelaskan dashboard',{})
     assert result['answer'] == SCOPE_REPLY
     assert result['suggested_filters'] is None
+
+
+@pytest.mark.anyio
+async def test_disconnect_cancels_provider_and_allows_next_question(monkeypatch):
+    import asyncio
+    from fastapi import HTTPException
+    from app.routes import smart
+
+    started, stopped, disconnect = asyncio.Event(), asyncio.Event(), asyncio.Event()
+    class Connection:
+        async def receive(self):
+            await disconnect.wait()
+            return {'type': 'http.disconnect'}
+    async def slow_generate(*args):
+        started.set()
+        try:
+            await asyncio.Event().wait()
+        finally:
+            stopped.set()
+    monkeypatch.setattr(smart, 'generate', slow_generate)
+    token = SimpleNamespace(user_id='cancel-test-owner')
+    pending = asyncio.create_task(smart.limited_generate(token, 'first', {}, 'chat', Connection()))
+    await asyncio.wait_for(started.wait(), 1)
+    disconnect.set()
+    with pytest.raises(HTTPException) as error:
+        await asyncio.wait_for(pending, 1)
+    assert error.value.status_code == 499
+    assert stopped.is_set()
+    assert token.user_id not in smart._active
+    async def reply(*args):
+        return {'answer': 'next reply'}
+    monkeypatch.setattr(smart, 'generate', reply)
+    assert await smart.limited_generate(token, 'next', {}, 'chat') == {'answer': 'next reply'}
+    smart._requests.pop(token.user_id, None)
+
+
+def test_ai_timeline_excludes_calendar_padding_but_keeps_recorded_zero():
+    from app.services.smart import contextual_prompt
+    context = evidence([sale(day='2026-08-01', price='0'), sale(day='2026-09-01')], [], [], Filters(year=2026))
+    assert context['data_coverage']['months_with_records'] == ['2026-08', '2026-09']
+    assert [row['month'] for row in context['timeline']] == ['2026-08', '2026-09']
+    assert context['timeline'][0]['sales'] == '0'
+    prompt = contextual_prompt(context)
+    assert '2026-08, 2026-09' in prompt
+    assert '2026-10' not in prompt
+    empty = evidence([], [], [], Filters(year=2027))
+    assert empty['timeline'] == []
+    assert 'Belum ada pengamatan penjualan' in contextual_prompt(empty)
+
+
+def test_monthly_comparisons_use_actual_adjacent_records_and_decimal_math():
+    context = evidence([sale(day='2026-08-01', price='200'), sale(day='2026-09-01', price='150')], [], [], Filters(year=2026))
+    change = context['monthly_changes'][0]
+    assert change['change'] == '-50'
+    assert Decimal(change['growth']) == Decimal('-25')
+    assert change['direction'] == 'turun'
+    gap = evidence([sale(day='2026-07-01'), sale(day='2026-09-01')], [], [], Filters(year=2026))
+    assert gap['monthly_changes'] == []
+    empty = evidence([sale(day='2026-08-01')], [], [], Filters(year=2026, month=9))
+    assert empty['comparison']['sales']['change'] is None
+    assert not any(a['code'] == 'sales_drop' for a in empty['alerts'])
+    assert empty['product_changes'] == []

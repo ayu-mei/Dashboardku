@@ -213,7 +213,7 @@
   }
 }
 
-/* Yuwi conversation: blank avatar slots are reserved for the future portrait. */
+/* Yuwi conversation and profile portrait. */
 .yuwi-chat.panel {
   padding: 0;
   border-radius: 24px;
@@ -230,7 +230,8 @@
   border-bottom: 1px solid #dbe9e4;
 }
 .yuwi-avatar {
-  display: block;
+  display: grid;
+  place-items: center;
   width: 46px;
   height: 46px;
   flex: 0 0 46px;
@@ -246,7 +247,10 @@
   width: 100%;
   height: 100%;
   object-fit: contain;
-  padding: 1px;
+  object-position: center;
+  padding: 3px;
+  /* Balance the tilted silhouette around the face, not the image canvas. */
+  transform: translateX(-4%);
 }
 .yuwi-kicker {
   color: #506e64;
@@ -514,12 +518,262 @@
 .yuwi-dialog::backdrop {
   background: #10243d30;
 }
-@media (max-width: 540px) {
+@media (max-width: 1023px) {
   .yuwi-dialog {
     inset: calc(var(--yuwi-viewport-top, 0px) + 8px) 8px auto;
     width: calc(100vw - 16px);
     max-width: none;
     height: calc(var(--yuwi-viewport-height, 100dvh) - 16px);
     max-height: none;
+  }
+}
+
+.yuwi-workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 20px;
+  align-items: start;
+}
+.yuwi-launcher.btn {
+  padding: 8px 18px 8px 8px;
+  border-radius: 999px;
+  gap: 10px;
+}
+.yuwi-launcher .yuwi-avatar {
+  width: 42px;
+  height: 42px;
+  flex-basis: 42px;
+}
+@media (min-width: 1024px) {
+  .yuwi-workspace-open {
+    grid-template-columns: minmax(0, 1fr) clamp(320px, 30vw, 410px);
+  }
+  .yuwi-dialog {
+    position: sticky;
+    inset: auto;
+    top: 96px;
+    width: 100%;
+    max-width: none;
+    height: calc(100dvh - 116px);
+    max-height: 820px;
+    min-height: 300px;
+    box-shadow: 0 2px 8px #10243d12;
+  }
+}
+
+.ai-table-scroll {
+  max-width: 100%;
+  overflow-x: auto;
+  border: 1px solid #dbe7e3;
+  border-radius: 10px;
+  margin-block: 12px;
+}
+.ai-table-scroll:focus-visible {
+  outline: 2px solid #0b8070;
+  outline-offset: 2px;
+}
+.ai-answer-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  line-height: 1.6;
+}
+.ai-answer-table th,
+.ai-answer-table td {
+  padding: 9px 12px;
+  min-width: 110px;
+  border-bottom: 1px solid #e5eeea;
+  vertical-align: top;
+}
+.ai-answer-table th {
+  background: #edf6f2;
+  color: #244b43;
+  font-weight: 600;
+}
+.ai-answer-table tbody tr:nth-child(even) {
+  background: #f8fbfa;
+}
+.ai-answer-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.yuwi-expand-toggle {
+  display: none;
+}
+@media (min-width: 1024px) {
+  .yuwi-expand-toggle {
+    display: inline-flex;
+  }
+  .yuwi-dialog.yuwi-expanded {
+    position: fixed;
+    top: 88px;
+    left: var(--yuwi-workspace-left, 24px);
+    right: auto;
+    bottom: 20px;
+    width: var(--yuwi-workspace-width, calc(100vw - 48px));
+    height: calc(100dvh - 108px);
+    max-height: none;
+    min-height: 0;
+    z-index: 40;
+    box-shadow: 0 12px 40px #10243d30;
+  }
+  .yuwi-expanded .yuwi-answer {
+    max-width: 100%;
+  }
+}
+
+.yuwi-context {
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.yuwi-context > span {
+  flex: 1 1 100px;
+}
+.yuwi-context button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.yuwi-history {
+  flex: 0 1 auto;
+  min-height: 0;
+  max-height: 40%;
+  overflow-y: auto;
+  padding: 12px 14px;
+  background: #fff;
+  border-bottom: 1px solid #dbe7e3;
+}
+.yuwi-history-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13px;
+}
+.yuwi-history-list {
+  margin-top: 10px;
+  display: grid;
+  gap: 6px;
+}
+.yuwi-history-list li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  border: 1px solid #e2eae7;
+  border-radius: 10px;
+  padding: 3px;
+}
+.yuwi-history-list li.is-active {
+  background: #edf7f2;
+  border-color: #78b8a6;
+}
+.yuwi-history-item {
+  min-width: 0;
+  flex: 1;
+  text-align: left;
+  padding: 8px;
+}
+.yuwi-history-item span {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+  font-weight: 600;
+}
+.yuwi-history-item small {
+  display: block;
+  margin-top: 3px;
+  font-size: 10px;
+  color: #5c766c;
+}
+.yuwi-history-confirm {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-basis: 100%;
+  padding: 8px;
+  font-size: 12px;
+}
+.yuwi-history-confirm button {
+  padding: 5px;
+  text-decoration: underline;
+}
+.yuwi-history button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.yuwi-history-rename {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 8px;
+  width: 100%;
+  font-size: 12px;
+}
+.yuwi-history-rename input {
+  width: 100%;
+  min-width: 0;
+}
+.yuwi-history-rename button {
+  padding: 5px 8px;
+  color: #086a55;
+  background: #eaf5ef;
+  border-radius: 6px;
+}
+
+/* A single responsive rule owns sidebar visibility and the content offset. */
+.dashboard-sidebar {
+  transform: translateX(-100%);
+  transition: transform 200ms ease;
+}
+.dashboard-sidebar.mobile-open {
+  transform: translateX(0);
+}
+.dashboard-main {
+  margin-left: 0;
+  transition: margin-left 200ms ease;
+}
+@media (min-width: 768px) {
+  .dashboard-sidebar {
+    transform: translateX(0);
+  }
+  .dashboard-main {
+    margin-left: 240px;
+  }
+  .sidebar-collapsed .dashboard-sidebar {
+    transform: translateX(-100%);
+  }
+  .sidebar-collapsed .dashboard-main {
+    margin-left: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .dashboard-sidebar,
+  .dashboard-main {
+    transition: none;
+  }
+}
+
+.dashboard-filter-primary {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 44px;
+  grid-template-areas: "year reset" "month month";
+  align-items: end;
+  gap: 12px;
+}
+.dashboard-filter-year {
+  grid-area: year;
+}
+.dashboard-filter-month {
+  grid-area: month;
+}
+.dashboard-filter-reset {
+  grid-area: reset;
+  min-height: 44px;
+}
+@media (min-width: 540px) {
+  .dashboard-filter-primary {
+    grid-template-columns: minmax(0, 176px) minmax(0, 208px) max-content;
+    grid-template-areas: "year month reset";
   }
 }
