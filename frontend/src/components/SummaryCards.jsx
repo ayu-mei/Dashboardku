@@ -22,7 +22,7 @@ export default function SummaryCards({ metrics, missingHppCount }) {
               <Icon size={16} className="shrink-0" />
             </div>
             <strong
-              className={`block break-words text-xl font-bold tracking-tight ${Number(metrics[key]) < 0 ? "text-red-600" : key === "net" ? "text-accent" : ""}`}
+              className={`block break-words text-xl font-bold tracking-tight ${Number(metrics[key]) < 0 ? "text-red-600" : ""}`}
             >
               {metrics[key] == null ? (
                 <span className="text-sm font-medium">HPP belum lengkap</span>

@@ -1,6 +1,6 @@
 """Persistence and overlap checks for imported source datasets."""
 from fastapi import HTTPException
-from app.services.database import database, all_records
+from app.services.database import all_records
 from app.services.excel import column_name
 
 

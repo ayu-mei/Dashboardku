@@ -7,3 +7,6 @@ httpx>=0.28,<1
 pydantic-settings>=2.7,<3
 python-multipart>=0.0.20,<1
 pytest>=8,<10
+
+# Minimum patched CA bundle; required by httpx/pip TLS verification.
+certifi>=2026.10.19

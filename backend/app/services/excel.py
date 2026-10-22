@@ -1,5 +1,4 @@
 from datetime import datetime, date
-from decimal import Decimal
 from io import BytesIO
 from zipfile import ZipFile, BadZipFile
 from xml.etree.ElementTree import ParseError

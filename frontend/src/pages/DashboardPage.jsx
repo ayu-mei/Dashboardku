@@ -186,7 +186,6 @@ export default function DashboardPage({ page, onPage, userId }) {
           userId={userId}
           reportData={model.data}
           query={model.query}
-          setFilters={model.setFilters}
           onPage={onPage}
         />
       )}

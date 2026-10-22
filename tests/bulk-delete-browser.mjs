@@ -74,6 +74,24 @@ try {
     if (route.request().method() === "OPTIONS")
       return route.fulfill({ status: 204, headers });
     const path = new URL(route.request().url()).pathname;
+    if (path === "/api/smart/overview")
+      return route.fulfill({
+        headers,
+        json: {
+          metrics: {
+            sales: "1200",
+            hpp: "600",
+            gross: "600",
+            gross_margin: "50",
+          },
+          missing_hpp_count: 0,
+          alerts: [],
+          forecast: { available: false, note: "Test" },
+          ai_configured: false,
+          rows: { sales: sales.length },
+          generated_at: new Date().toISOString(),
+        },
+      });
     if (path.endsWith("bulk-delete")) {
       const { ids } = route.request().postDataJSON();
       writes.push({ path, ids });
@@ -109,25 +127,13 @@ try {
   await page.getByLabel("Email", { exact: true }).fill("test@example.invalid");
   await page.getByLabel("Password", { exact: true }).fill("test-password");
   await page.getByRole("button", { name: "Masuk", exact: true }).click();
-  await page
-    .getByRole("button", { name: "Data Penjualan", exact: true })
-    .click();
-  const salesPanel = page
-    .locator("section")
-    .filter({
-      has: page.getByRole("heading", {
-        name: "Transaksi penjualan",
-        exact: true,
-      }),
-    });
-  const expensePanel = page
-    .locator("section")
-    .filter({
-      has: page.getByRole("heading", {
-        name: "Biaya operasional",
-        exact: true,
-      }),
-    });
+  await page.getByRole("button", { name: "Data Bisnis", exact: true }).click();
+  const salesPanel = page.locator("section").filter({
+    has: page.getByRole("heading", {
+      name: "Penjualan",
+      exact: true,
+    }),
+  });
   await salesPanel.getByText("12 baris · Halaman 1 dari 2").waitFor();
   await salesPanel
     .getByRole("checkbox", { name: "Pilih Produk 1 ", exact: false })
@@ -148,7 +154,9 @@ try {
     3,
   );
   assert.equal(
-    await expensePanel.getByRole("checkbox", { checked: true }).count(),
+    await page
+      .getByRole("heading", { name: "Biaya operasional", exact: true })
+      .count(),
     0,
   );
   page.once("dialog", (dialog) => dialog.dismiss());
@@ -190,20 +198,11 @@ try {
     .waitFor();
   assert.equal(sales.length, 0);
   assert.equal(expenses.length, 1);
-  await expensePanel
-    .getByRole("button", { name: "Pilih semua hasil filter", exact: true })
-    .click();
-  page.once("dialog", (dialog) => dialog.accept());
-  await expensePanel
-    .getByRole("button", { name: "Hapus terpilih (1)", exact: true })
-    .click();
-  await page
-    .getByText("1 catatan biaya operasional berhasil dihapus.", { exact: true })
-    .waitFor();
-  assert.equal(expenses.length, 0);
+  assert.equal(expenses.length, 1);
+  assert.ok(writes.every((write) => write.path === "/api/sales/bulk-delete"));
   assert.deepEqual(errors, []);
   console.log(
-    "PASS: individual selection, mixed checkbox, all pages, cancellation, search scope, selection reset, delete all sales, separate expenses, no JS errors. Mock data only.",
+    "PASS: individual selection, mixed checkbox, all pages, cancellation, search scope, selection reset, delete all sales, hidden expenses preserved, no JS errors. Mock data only.",
   );
 } finally {
   await browser?.close();

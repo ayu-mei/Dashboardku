@@ -5,6 +5,7 @@ import { ErrorMessage } from "./Feedback";
 import ExcelReportReview from "./ExcelReportReview";
 import SourceImportReview from "./SourceImportReview";
 import ImportAIHelp from "./ImportAIHelp";
+import TransactionImportConfirmation from "./TransactionImportConfirmation";
 const MAX_UPLOAD_MB = 50;
 const MAX_UPLOAD_BYTES = MAX_UPLOAD_MB * 1024 * 1024;
 const fields = [
@@ -254,7 +255,7 @@ export default function ExcelUpload({ onImported, onClose, initialYear }) {
           ),
         )}
       </ol>
-      <div className="my-5 grid items-start gap-5 sm:grid-cols-2">
+      <div className="my-5 grid grid-cols-1 items-start gap-5 sm:grid-cols-2">
         <div className="min-w-0">
           <label
             htmlFor="excel-file-input"
@@ -323,10 +324,11 @@ export default function ExcelUpload({ onImported, onClose, initialYear }) {
           )}
         </div>
         {profile?.sheets.length > 1 && (
-          <label>
+          <label className="min-w-0">
             Pilih Sheet
             <select
               ref={sheetInput}
+              className="overflow-hidden"
               aria-label="Pilih Sheet"
               value={sheet}
               disabled={busy}
@@ -610,7 +612,7 @@ export default function ExcelUpload({ onImported, onClose, initialYear }) {
             </p>
             <div className="my-5 grid gap-4 sm:grid-cols-2">
               {fields.map(([key, label, required]) => (
-                <label key={key}>
+                <label key={key} className="min-w-0">
                   {label}
                   {required ? " *" : ""}
                   <select
@@ -683,42 +685,14 @@ export default function ExcelUpload({ onImported, onClose, initialYear }) {
         </div>
       )}
       {preview && (
-        <div className="mt-5 rounded-xl border border-emerald-200 bg-emerald-50 p-4">
-          <p className="font-semibold">{preview.count} baris transaksi valid</p>
-          <p className="mt-2 text-sm text-slate-600">{preview.notice}</p>
-          <label className="my-4 flex items-start gap-3">
-            <input
-              type="checkbox"
-              disabled={busy}
-              checked={confirmed}
-              onChange={(e) => setConfirmed(e.target.checked)}
-            />
-            <span>
-              Saya memastikan ini detail transaksi aktual, tanpa subtotal,
-              tanggal benar, serta HPP bukan biaya operasional dan data ini
-              belum pernah diimpor.
-            </span>
-          </label>
-          <div className="flex flex-wrap justify-end gap-3">
-            <button
-              type="button"
-              className="btn-secondary"
-              disabled={busy}
-              onClick={onClose}
-            >
-              Batal
-            </button>
-            <button
-              className="btn"
-              disabled={busy || !confirmed}
-              onClick={() => process(true)}
-            >
-              {busy
-                ? "Menyimpan…"
-                : `Konfirmasi Import ${preview.count} transaksi`}
-            </button>
-          </div>
-        </div>
+        <TransactionImportConfirmation
+          preview={preview}
+          busy={busy}
+          confirmed={confirmed}
+          setConfirmed={setConfirmed}
+          onClose={onClose}
+          onConfirm={() => process(true)}
+        />
       )}
     </dialog>
   );

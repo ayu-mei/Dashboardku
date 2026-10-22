@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { resolve } from "node:path";
 import { spawn } from "node:child_process";
-import { mkdir, readFile } from "node:fs/promises";
+import { mkdir } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { build, preview } from "vite";
 import { chromium } from "playwright";
@@ -100,7 +100,9 @@ try {
     if (
       response.url().startsWith(base + "/api/") &&
       response.status() >= 400 &&
-      !(expectedBadFile && response.url().endsWith("/api/import/inspect"))
+      !(
+        expectedBadFile && new URL(response.url()).pathname.endsWith("/inspect")
+      )
     )
       failedRequests.push(response.url() + ": " + response.status());
   });
@@ -114,6 +116,7 @@ try {
         access_token: "test-access",
         refresh_token: "test-refresh",
         expires_in: 3600,
+        user: { id: "browser-test-user" },
       },
       headers: { "Access-Control-Allow-Origin": "*" },
     }),
@@ -123,11 +126,11 @@ try {
   await page.getByLabel("Password", { exact: true }).fill("test-password");
   await page.getByRole("button", { name: "Masuk", exact: true }).click();
   await page
-    .getByRole("heading", { name: "Belum ada data penjualan", exact: true })
+    .getByRole("heading", { name: "Smart Dashboard", exact: true })
     .waitFor();
   assert.deepEqual(
     await page.getByRole("navigation").getByRole("button").allTextContents(),
-    ["Dashboard", "Data Penjualan", "Analisis"],
+    ["Smart Dashboard", "Data Bisnis", "Analisis"],
   );
   for (const name of ["Import Excel", "Tambah transaksi", "Unduh Excel"])
     assert.equal(
@@ -145,11 +148,11 @@ try {
     .getByRole("button", { name: "Kelola Data Penjualan", exact: true })
     .click();
   await page
-    .getByRole("heading", { name: "Data Penjualan", exact: true })
+    .getByRole("heading", { name: "Data Bisnis", exact: true })
     .waitFor();
   assert.equal(
     await page.locator('[aria-current="page"]').innerText(),
-    "Data Penjualan",
+    "Data Bisnis",
   );
   await page.getByRole("button", { name: "Import Excel", exact: true }).click();
   let modal = page.getByRole("dialog", { name: "Import Excel" });
@@ -208,7 +211,7 @@ try {
   const buffer = await writeXlsxFile([
     { sheet: "Ringkasan", data: [[cell("Laporan saja")]] },
     {
-      sheet: "PAYDAY_",
+      sheet: "Transaksi belum lengkap",
       data: [
         ["SKU_DESC", "REGION", "Sum of QTY_SALES"].map(cell),
         ["PAKET PAYDAY", "Makassar", 8].map(cell),
@@ -246,10 +249,10 @@ try {
   await modal.getByLabel("Pilih Sheet", { exact: true }).selectOption("Kosong");
   await modal.getByText(/Struktur data belum dapat dikenali/).waitFor();
   assert.equal((await state()).writes, 0);
-  // Reading a pivot table must not be presented as a transaction-ready import.
+  // Incomplete transaction data must not be presented as ready for import.
   await modal
     .getByLabel("Pilih Sheet", { exact: true })
-    .selectOption("PAYDAY_");
+    .selectOption("Transaksi belum lengkap");
   await modal
     .getByText("Sheet berhasil dibaca, tetapi kolom transaksi belum lengkap", {
       exact: true,
@@ -592,7 +595,9 @@ try {
     .getByRole("button", { name: "Hapus Produk CRUD", exact: true })
     .click();
   await page.getByText("Data berhasil dihapus.", { exact: true }).waitFor();
-  await page.getByRole("button", { name: "Dashboard", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Smart Dashboard", exact: true })
+    .click();
   await page.getByRole("region", { name: "Ringkasan keuangan" }).waitFor();
   assert.ok(
     (
@@ -626,6 +631,12 @@ try {
     .getByRole("region", { name: "Tabel profitabilitas produk" })
     .getByRole("cell", { name: "Frame", exact: true })
     .waitFor();
+  await page.waitForFunction(
+    () =>
+      document.querySelectorAll(
+        '[aria-label="Tabel profitabilitas produk"] tbody tr',
+      ).length === 1,
+  );
   assert.equal(
     await page
       .getByRole("region", { name: "Tabel profitabilitas produk" })
@@ -638,6 +649,7 @@ try {
       await page.getByRole("region", { name: "Ringkasan analisis" }).innerText()
     ).includes("-80%"),
   );
+  await page.locator("summary").filter({ hasText: "Filter lainnya" }).click();
   await page
     .getByLabel("Cabang / Lokasi", { exact: true })
     .selectOption("Bali");
@@ -666,189 +678,8 @@ try {
         fullPage: true,
       });
   }
-  // Dated recaps use a dedicated business preview, not transaction-column mapping.
-  await page.setViewportSize({ width: 1440, height: 1000 });
-  await page
-    .getByRole("button", { name: "Data Penjualan", exact: true })
-    .click();
-  const beforeReport = await state();
-  const realSource = process.env.REFRAKSI_SOURCE_FOLDER;
-  const reportBuffer = realSource
-    ? await readFile(resolve(realSource, "REPORT SALES DOUBLE DATE.xlsx"))
-    : Buffer.from(
-        await (await fetch(base + "/test/report-file")).arrayBuffer(),
-      );
-  const reportFile = {
-    name: "dated-report.xlsx",
-    mimeType:
-      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-    buffer: reportBuffer,
-  };
-  const goodSheet = realSource ? "DOUBLE DATE MARET" : "Detail Maret";
-  const reportCount = realSource ? 47 : 1;
-  await page.getByRole("button", { name: "Import Excel", exact: true }).click();
-  modal = page.getByRole("dialog", { name: "Import Excel" });
-  await modal.locator("input[type=file]").setInputFiles(reportFile);
-  await modal
-    .getByLabel("Pilih Sheet", { exact: true })
-    .selectOption(goodSheet);
-  await modal
-    .getByRole("heading", { name: "✓ Laporan penjualan dikenali", exact: true })
-    .waitFor();
-  assert.equal(
-    await modal.getByLabel("Tanggal transaksi *", { exact: true }).count(),
-    0,
-  );
-  const reportYear = modal.getByLabel("Tahun laporan", { exact: true });
-  await reportYear.fill("2026");
-  await modal
-    .getByRole("button", { name: "Periksa Data", exact: true })
-    .click();
-  await modal
-    .getByText(
-      `${reportCount} baris siap diimpor tanpa mengubah total penjualan dan HPP`,
-      { exact: true },
-    )
-    .waitFor();
-  assert.equal((await state()).writes, beforeReport.writes);
-  const reportCommit = modal.getByRole("button", {
-    name: `Konfirmasi Import ${reportCount} baris laporan`,
-    exact: true,
-  });
-  assert.equal(await reportCommit.isEnabled(), false);
-  await reportYear.fill("2025");
-  assert.equal(
-    await modal
-      .getByRole("heading", { name: "Preview laporan penjualan", exact: true })
-      .count(),
-    0,
-  );
-  assert.equal(await reportCommit.count(), 0);
-  await reportYear.fill("2026");
-  await modal
-    .getByRole("button", { name: "Periksa Data", exact: true })
-    .click();
-  await reportCommit.waitFor();
-  // Changing the file must clear the previous valid preview and its confirmation.
-  const badReport = realSource
-    ? reportBuffer
-    : Buffer.from(
-        await (
-          await fetch(base + "/test/report-file?precision=true")
-        ).arrayBuffer(),
-      );
-  await modal.locator("input[type=file]").setInputFiles({
-    ...reportFile,
-    name: "report-precision.xlsx",
-    buffer: badReport,
-  });
-  await modal
-    .getByLabel("Pilih Sheet", { exact: true })
-    .selectOption(realSource ? "DOUBLE DATE OKTOBER" : "Detail Maret");
-  await modal
-    .getByRole("heading", { name: "✓ Laporan penjualan dikenali", exact: true })
-    .waitFor();
-  assert.equal(await reportCommit.count(), 0);
-  await modal
-    .getByRole("button", { name: "Periksa Data", exact: true })
-    .click();
-  await modal
-    .getByText("Preview tersedia, tetapi laporan belum dapat disimpan", {
-      exact: true,
-    })
-    .waitFor();
-  assert.equal(
-    await modal.getByRole("button", { name: /^Konfirmasi Import/ }).count(),
-    0,
-  );
-  assert.ok(
-    (await modal.getByRole("alert").innerText()).includes(
-      "HPP sumber memiliki lebih dari dua desimal",
-    ),
-  );
-  assert.equal((await state()).writes, beforeReport.writes);
-  await modal.getByRole("button", { name: "Batal", exact: true }).click();
-  assert.equal((await state()).writes, beforeReport.writes);
-  await page.getByRole("button", { name: "Import Excel", exact: true }).click();
-  modal = page.getByRole("dialog", { name: "Import Excel" });
-  await modal.locator("input[type=file]").setInputFiles(reportFile);
-  await modal
-    .getByLabel("Pilih Sheet", { exact: true })
-    .selectOption(goodSheet);
-  await modal
-    .getByRole("heading", { name: "✓ Laporan penjualan dikenali", exact: true })
-    .waitFor();
-  await modal.getByLabel("Tahun laporan", { exact: true }).fill("2026");
-  await modal
-    .getByRole("button", { name: "Periksa Data", exact: true })
-    .click();
-  await modal
-    .getByText(
-      `${reportCount} baris siap diimpor tanpa mengubah total penjualan dan HPP`,
-      { exact: true },
-    )
-    .waitFor();
-  for (const width of [360, 390, 768, 1440]) {
-    await page.setViewportSize({ width, height: 1000 });
-    assert.ok(
-      await modal.evaluate((el) => el.scrollWidth <= el.clientWidth),
-      `Report overflow ${width}`,
-    );
-    if (width === 390 || width === 1440) {
-      await modal.evaluate((el) => {
-        el.scrollTop = el.scrollHeight;
-      });
-      await page.screenshot({
-        path: `test-artifacts/report-import-${width}.png`,
-      });
-    }
-  }
-  await modal.getByRole("checkbox").check();
-  await modal
-    .getByRole("button", {
-      name: `Konfirmasi Import ${reportCount} baris laporan`,
-      exact: true,
-    })
-    .click();
-  await page.getByText(/Impor berhasil/).waitFor();
-  const afterReport = await state();
-  assert.equal(afterReport.writes, beforeReport.writes + 1);
-  assert.equal(
-    afterReport.refraksi_sales.length,
-    beforeReport.refraksi_sales.length + reportCount,
-  );
-  const addedReport = afterReport.refraksi_sales.slice(
-    beforeReport.refraksi_sales.length,
-  );
-  assert.ok(addedReport.every((row) => row.date === "2026-03-03"));
-  assert.equal(
-    addedReport.reduce((sum, row) => sum + Number(row.price) * row.quantity, 0),
-    realSource ? 11541000 : 20001,
-  );
-  // Already-imported reports must be identified during preview, without a
-  // second save attempt or a misleading ready-to-import status.
-  await page.getByRole("button", { name: "Import Excel", exact: true }).click();
-  modal = page.getByRole("dialog", { name: "Import Excel" });
-  await modal.locator("input[type=file]").setInputFiles(reportFile);
-  await modal
-    .getByLabel("Pilih Sheet", { exact: true })
-    .selectOption(goodSheet);
-  await modal
-    .getByRole("heading", { name: "✓ Laporan penjualan dikenali", exact: true })
-    .waitFor();
-  await modal.getByLabel("Tahun laporan", { exact: true }).fill("2026");
-  await modal
-    .getByRole("button", { name: "Periksa Data", exact: true })
-    .click();
-  await modal
-    .getByText("Laporan ini sudah tersimpan", { exact: true })
-    .waitFor();
-  assert.equal(
-    await modal.getByRole("button", { name: /^Konfirmasi Import/ }).count(),
-    0,
-  );
-  assert.equal((await state()).writes, afterReport.writes);
-  await modal.getByRole("button", { name: "Batal", exact: true }).click();
+  // Recap/master/claim UI is covered by source-import-browser.mjs;
+  // legacy report endpoints remain covered by backend/tests/test_excel_reports.py.
   await page.getByRole("button", { name: "Keluar", exact: true }).click();
   await page
     .getByRole("heading", { name: "Selamat datang", exact: true })
@@ -856,7 +687,7 @@ try {
   assert.deepEqual(errors, []);
   assert.deepEqual(failedRequests, []);
   console.log(
-    `PASS: real FastAPI Excel inspection/preview/commit and analysis; dated report preview/commit (${realSource ? "actual Maret workbook, 47 rows" : "fixture workbook"}), precision blocking, year/file reset; empty states, sidebar, native file chooser, cancellation, CRUD, filtered export, read-only dashboard/analysis, comparison, filters, responsive 320–1440px, logout. Isolated storage and mocked Supabase Auth; no production data changed.`,
+    `PASS: real FastAPI Excel inspection/preview/commit and analysis; empty states, sidebar, native file chooser, cancellation, CRUD, filtered export, read-only dashboard/analysis, comparison, filters, responsive 320–1440px, logout. Isolated storage and mocked Supabase Auth; no production data changed.`,
   );
 } catch (error) {
   const page = browser?.contexts()[0]?.pages()[0];

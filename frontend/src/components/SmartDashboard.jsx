@@ -1,17 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import {
-  Send,
-  Download,
-  AlertTriangle,
-  TrendingUp,
-  ArrowRight,
-  X,
-  Maximize2,
-  Minimize2,
-  History,
-  Trash2,
-  Pencil,
-} from "lucide-react";
+import { Send, Download, X, Maximize2, Minimize2, History } from "lucide-react";
 import { api } from "../services/api";
 import SalesCharts from "./SalesCharts";
 import AIAnswer from "./AIAnswer";
@@ -19,7 +7,9 @@ import useChatHistory from "../hooks/useChatHistory";
 import { formatDuration } from "../utils/duration";
 import yuwiProfile from "../assets/images/yuwi-profile-anime.png";
 import SummaryCards from "./SummaryCards";
-import { sourceRupiah, monthLabel, filterSummary } from "../utils/format";
+import BusinessInsights from "./BusinessInsights";
+import ChatHistoryPanel from "./ChatHistoryPanel";
+import { filterSummary } from "../utils/format";
 
 function YuwiAvatar() {
   return (
@@ -45,10 +35,6 @@ export default function SmartDashboard({ query, onPage, reportData, userId }) {
   const history = useChatHistory(userId);
   const { messages, setMessages, question, setQuestion } = history;
   const [historyOpen, setHistoryOpen] = useState(false);
-  const [deleteCandidate, setDeleteCandidate] = useState(null);
-  const [historySearch, setHistorySearch] = useState("");
-  const [renaming, setRenaming] = useState(null);
-  const [newTitle, setNewTitle] = useState("");
   useLayoutEffect(() => {
     if (!chatOpen) return;
     const resize = () => {
@@ -285,98 +271,7 @@ export default function SmartDashboard({ query, onPage, reportData, userId }) {
               {reportData?.sales?.length > 0 && (
                 <SalesCharts data={reportData} stacked={chatOpen} />
               )}
-              <section className="panel">
-                <h3 className="flex items-center gap-2 font-semibold">
-                  <AlertTriangle size={18} /> Hal yang perlu diperhatikan
-                </h3>
-
-                <div className="mt-4 grid gap-3 lg:grid-cols-2">
-                  {overview.alerts.length ? (
-                    [...overview.alerts]
-                      .sort(
-                        (a, b) =>
-                          (a.level === "warning" ? 0 : 1) -
-                          (b.level === "warning" ? 0 : 1),
-                      )
-                      .map((a) => (
-                        <article
-                          key={a.code}
-                          className={`rounded-xl border p-4 ${a.level === "warning" ? "border-amber-200 bg-amber-50" : "border-slate-200 bg-slate-50"}`}
-                        >
-                          <h4 className="text-sm font-semibold">{a.title}</h4>
-                          <p className="mt-2 text-sm leading-relaxed text-slate-600">
-                            {a.detail}
-                          </p>
-                        </article>
-                      ))
-                  ) : (
-                    <p className="muted">
-                      Tidak ada peringatan pada pemeriksaan ini.
-                    </p>
-                  )}
-                </div>
-                <button
-                  className="btn-secondary mt-4"
-                  onClick={() => onPage("data")}
-                >
-                  Periksa data sumber <ArrowRight size={15} />
-                </button>
-              </section>
-              <section className="panel">
-                <h3 className="flex items-center gap-2 font-semibold">
-                  <TrendingUp size={18} /> Estimasi penjualan
-                </h3>
-                {overview.forecast.available ? (
-                  <>
-                    <p className="muted mt-3">
-                      Perkiraan {monthLabel(overview.forecast.month, true)}
-                    </p>
-                    <p className="mt-2 text-2xl font-bold text-navy">
-                      {sourceRupiah(overview.forecast.sales)}
-                    </p>
-                    <p className="muted mt-2">
-                      {overview.forecast.method} · Selisih historis rata-rata
-                      (MAE): {sourceRupiah(overview.forecast.backtest_mae)}
-                    </p>
-                    <details className="mt-4 text-xs text-slate-500">
-                      <summary className="cursor-pointer py-2 font-medium">
-                        Lihat riwayat estimasi
-                      </summary>
-                      <div className="mt-2 overflow-x-auto">
-                        <table className="w-full">
-                          <thead>
-                            <tr>
-                              <th>Bulan riwayat</th>
-                              <th>Penjualan</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {overview.forecast.training.map((r) => (
-                              <tr key={r.month}>
-                                <td>{monthLabel(r.month, true)}</td>
-                                <td>{sourceRupiah(r.sales)}</td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    </details>
-                  </>
-                ) : (
-                  <p className="mt-3 text-sm text-slate-600">
-                    Estimasi belum tersedia. Diperlukan 6 bulan data berurutan
-                    hingga bulan terakhir.
-                  </p>
-                )}
-                <details className="mt-4 text-xs text-slate-500">
-                  <summary className="cursor-pointer py-2 font-medium">
-                    Metode dan batasan estimasi
-                  </summary>
-                  <p className="mt-2 leading-relaxed">
-                    {overview.forecast.note}
-                  </p>
-                </details>
-              </section>
+              <BusinessInsights overview={overview} onPage={onPage} />
             </div>
             <dialog
               ref={chatDialog}
@@ -468,170 +363,14 @@ export default function SmartDashboard({ query, onPage, reportData, userId }) {
                   {history.storageError}
                 </p>
               )}
-              {historyOpen && (
-                <section
-                  id="yuwi-history"
-                  className="yuwi-history"
-                  aria-label="Riwayat percakapan"
-                >
-                  <div className="yuwi-history-heading">
-                    <strong>Riwayat chat</strong>
-                    <button
-                      className="icon-btn"
-                      aria-label="Tutup riwayat"
-                      onClick={() => setHistoryOpen(false)}
-                    >
-                      <X size={16} />
-                    </button>
-                  </div>
-                  <p className="muted text-xs">
-                    Tersimpan di browser ini untuk akun Anda.
-                  </p>
-                  {busy && (
-                    <p className="muted text-xs mt-2">
-                      Tunggu jawaban atau tekan Hentikan sebelum berganti chat.
-                    </p>
-                  )}
-                  <input
-                    className="input mt-2 w-full"
-                    aria-label="Cari riwayat chat"
-                    placeholder="Cari percakapan…"
-                    value={historySearch}
-                    onChange={(event) => setHistorySearch(event.target.value)}
-                  />
-                  {!history.conversations.some((item) =>
-                    item.title
-                      .toLocaleLowerCase()
-                      .includes(historySearch.toLocaleLowerCase()),
-                  ) && (
-                    <p className="muted mt-3 text-xs">
-                      Percakapan tidak ditemukan.
-                    </p>
-                  )}
-                  <ul className="yuwi-history-list">
-                    {history.conversations
-                      .filter((item) =>
-                        item.title
-                          .toLocaleLowerCase()
-                          .includes(historySearch.toLocaleLowerCase()),
-                      )
-                      .map((item) => (
-                        <li
-                          key={item.id}
-                          className={
-                            item.id === history.activeId ? "is-active" : ""
-                          }
-                        >
-                          <button
-                            className="yuwi-history-item"
-                            disabled={busy}
-                            aria-current={
-                              item.id === history.activeId ? "true" : undefined
-                            }
-                            onClick={() => {
-                              history.select(item.id);
-                              setHistoryOpen(false);
-                              setDeleteCandidate(null);
-                              setError("");
-                            }}
-                          >
-                            <span>{item.title}</span>
-                            <small>
-                              {item.id === history.activeId ? "Aktif · " : ""}
-                              {new Date(item.updatedAt).toLocaleString(
-                                "id-ID",
-                                {
-                                  day: "numeric",
-                                  month: "short",
-                                  hour: "2-digit",
-                                  minute: "2-digit",
-                                },
-                              )}
-                            </small>
-                          </button>
-                          <button
-                            className="icon-btn"
-                            aria-label={`Ubah nama chat ${item.title}`}
-                            onClick={() => {
-                              setRenaming(item.id);
-                              setNewTitle(item.title);
-                              setDeleteCandidate(null);
-                            }}
-                          >
-                            <Pencil size={14} />
-                          </button>
-                          {renaming === item.id && (
-                            <form
-                              className="yuwi-history-rename"
-                              onSubmit={(event) => {
-                                event.preventDefault();
-                                if (newTitle.trim()) {
-                                  history.rename(item.id, newTitle);
-                                  setRenaming(null);
-                                  setHistorySearch("");
-                                }
-                              }}
-                            >
-                              <input
-                                autoFocus
-                                className="input"
-                                aria-label="Nama percakapan"
-                                maxLength={80}
-                                value={newTitle}
-                                onChange={(event) =>
-                                  setNewTitle(event.target.value)
-                                }
-                                onKeyDown={(event) => {
-                                  if (event.key === "Escape") {
-                                    event.preventDefault();
-                                    event.stopPropagation();
-                                    setRenaming(null);
-                                  }
-                                }}
-                              />
-                              <button type="submit" disabled={!newTitle.trim()}>
-                                Simpan
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => setRenaming(null)}
-                              >
-                                Batal
-                              </button>
-                            </form>
-                          )}
-                          {deleteCandidate === item.id ? (
-                            <div className="yuwi-history-confirm">
-                              <span>Hapus chat ini?</span>
-                              <button
-                                disabled={busy}
-                                onClick={() => {
-                                  history.remove(item.id);
-                                  setDeleteCandidate(null);
-                                  setError("");
-                                }}
-                              >
-                                Hapus
-                              </button>
-                              <button onClick={() => setDeleteCandidate(null)}>
-                                Batal
-                              </button>
-                            </div>
-                          ) : (
-                            <button
-                              className="icon-btn"
-                              disabled={busy}
-                              aria-label={`Hapus chat ${item.title}`}
-                              onClick={() => setDeleteCandidate(item.id)}
-                            >
-                              <Trash2 size={14} />
-                            </button>
-                          )}
-                        </li>
-                      ))}
-                  </ul>
-                </section>
-              )}
+              <div hidden={!historyOpen}>
+                <ChatHistoryPanel
+                  history={history}
+                  busy={busy}
+                  onClose={() => setHistoryOpen(false)}
+                  onSelect={() => setError("")}
+                />
+              </div>
               <div
                 ref={chatScroll}
                 role="log"

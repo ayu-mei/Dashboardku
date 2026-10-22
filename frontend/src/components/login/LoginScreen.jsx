@@ -17,7 +17,7 @@ export default function LoginScreen({ busy, error, available, onSubmit }) {
         >
           <div>
             <span>REFRAKSI</span>
-            <small>SALES &amp; FINANCE DASHBOARD</small>
+            <small>DASHBOARD BISNIS</small>
           </div>
         </header>
         <div className="login-card">
@@ -29,7 +29,7 @@ export default function LoginScreen({ busy, error, available, onSubmit }) {
             </div>
             <div className="login-panel-heading">
               <h1>Selamat datang</h1>
-              <p>Masuk dan jelajahi data Anda bersama Yuwi.</p>
+              <p>Masuk untuk melihat perkembangan bisnis Anda.</p>
             </div>
             <form
               onSubmit={onSubmit}
@@ -117,7 +117,7 @@ export default function LoginScreen({ busy, error, available, onSubmit }) {
                 )}
               </button>
               <p className="login-account-note">
-                Akses hanya tersedia untuk akun yang telah terdaftar.
+                Gunakan akun yang sudah terdaftar.
               </p>
               <div className="login-support-note">
                 <p>
@@ -128,7 +128,6 @@ export default function LoginScreen({ busy, error, available, onSubmit }) {
           </main>
         </div>
         <footer className="login-footer">
-          <span>Data lebih jelas, langkah lebih yakin.</span>
           <span>© {new Date().getFullYear()} REFRAKSI</span>
         </footer>
       </div>

@@ -1,6 +1,5 @@
 """Read-only smart assistant. No model tools can mutate database records."""
 import asyncio
-import json
 from collections import defaultdict, deque
 from datetime import datetime, timezone
 from time import monotonic

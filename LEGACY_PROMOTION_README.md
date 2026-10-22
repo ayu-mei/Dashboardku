@@ -6,11 +6,11 @@ Dashboard React untuk program flush out Bali, 1–31 Oktober 2026.
 
 ```sh
 npm install
-npm run data:import
-npm run dev
+npm run legacy:promotion:import
+npm run legacy:promotion:dev
 ```
 
-Build produksi: `npm run build`. Pratinjau: `npm run preview`.
+Build produksi: `npm run legacy:promotion:build`. Pratinjau: `npx vite preview --outDir legacy-dist`.
 
 ## Struktur
 
@@ -29,4 +29,4 @@ Sheet FORMAT adalah sumber utama, header baris 4, produk mulai baris 6. Baris ta
 
 Harga reguler H; harga promo L; GP promo M mengikuti nilai tersimpan Excel, tidak dihitung ulang. Stok AQ/AR/AS tidak memiliki tanggal eksplisit; AK/AL/AM adalah snapshot 25 September 2026. Nilai persediaan menggunakan AU, bukan penjualan aktual. BA/BB adalah penjualan historis 1–25 Agustus 2026. Nilai kosong dan error tidak dijumlahkan. SUMMARY mengacu November 2025 sehingga tidak dipakai sebagai KPI Oktober. Master product tidak digabung karena FORMAT sudah berisi supplier dan assortment promosi.
 
-Impor membaca hasil formula yang tersimpan, bukan menghitung ulang formula atau memperbarui tautan eksternal. Setelah memperbarui workbook dan menyimpannya di Excel, jalankan kembali `npm run data:import`. File JSON dikirim ke browser; gunakan hosting internal jika datanya bersifat internal.
+Impor membaca hasil formula yang tersimpan, bukan menghitung ulang formula atau memperbarui tautan eksternal. Setelah memperbarui workbook dan menyimpannya di Excel, jalankan kembali `npm run legacy:promotion:import`. File JSON dikirim ke browser; gunakan hosting internal jika datanya bersifat internal.

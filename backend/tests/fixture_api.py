@@ -53,7 +53,6 @@ from app.routes import smart
 smart.all_records = all_records
 dashboard.database = database
 uploads.database = database
-sources.database = database
 sources.all_records = all_records
 
 @app.post('/test/reset')

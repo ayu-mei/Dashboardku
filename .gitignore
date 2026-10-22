@@ -17,3 +17,4 @@ test-artifacts/
 .playwright-mcp/
 *.xlsx
 .pytest_cache/
+legacy-dist/

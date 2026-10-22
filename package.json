@@ -13,8 +13,13 @@
     "build:online": "npm run build",
     "test:online": "node scripts/check-browser.mjs",
     "preview": "npm --workspace frontend run preview",
-    "data:import": "node scripts/import-workbook.mjs",
-    "lint": "prettier --check frontend/src frontend/vite.config.js tests/workspace-browser.mjs scripts/check-browser.mjs"
+    "lint": "prettier --check frontend/src frontend/vite.config.js tests/workspace-browser.mjs scripts/check-browser.mjs",
+    "legacy:promotion:dev": "vite --config vite.config.js --host 127.0.0.1",
+    "legacy:promotion:build": "vite build --config vite.config.js --outDir legacy-dist",
+    "legacy:promotion:import": "node scripts/import-workbook.mjs",
+    "test:backend": "cd backend && ../.venv/bin/python -m pytest tests -q",
+    "test:browser": "node tests/workspace-browser.mjs && node tests/login-browser.mjs && node tests/bulk-delete-browser.mjs && node tests/source-import-browser.mjs && node tests/smart-dashboard-browser.mjs",
+    "audit:dependencies": "npm audit"
   },
   "dependencies": {
     "lucide-react": "^0.468.0",
