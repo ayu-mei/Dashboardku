@@ -11,8 +11,17 @@ import {
 import { api } from "../services/api";
 import SalesCharts from "./SalesCharts";
 import AIAnswer from "./AIAnswer";
+import yuwiProfile from "../assets/images/yuwi-profile.png";
 import SummaryCards from "./SummaryCards";
 import { sourceRupiah, monthLabel, filterSummary } from "../utils/format";
+
+function YuwiAvatar() {
+  return (
+    <span className="yuwi-avatar" aria-hidden="true">
+      <img src={yuwiProfile} alt="" decoding="async" />
+    </span>
+  );
+}
 
 export default function SmartDashboard({
   query,
@@ -344,7 +353,7 @@ export default function SmartDashboard({
               }}
             >
               <header className="yuwi-header">
-                <span className="yuwi-avatar" aria-hidden="true" />
+                <YuwiAvatar />
                 <div className="min-w-0 flex-1">
                   <p className="yuwi-kicker">REFRAKSI · ASISTEN BISNIS</p>
                   <h3 id="smart-chat-title" tabIndex={-1}>
@@ -392,7 +401,7 @@ export default function SmartDashboard({
               >
                 {!messages.length && !busy && (
                   <div className="yuwi-welcome">
-                    <span className="yuwi-avatar" aria-hidden="true" />
+                    <YuwiAvatar />
                     <h4>Halo, saya Yuwi</h4>
                     <p>
                       Tanyakan penjualan, HPP, laba kotor, atau tren bisnis. AI
@@ -415,7 +424,7 @@ export default function SmartDashboard({
                       </time>
                     </div>
                     <div className="yuwi-assistant">
-                      <span className="yuwi-avatar" aria-hidden="true" />
+                      <YuwiAvatar />
                       <div className="yuwi-answer">
                         <AIAnswer>{m.answer}</AIAnswer>
                         <p className="muted mt-3 text-[10px]">

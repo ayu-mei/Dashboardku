@@ -427,7 +427,13 @@ try {
       .count(),
     0,
   );
-  assert.equal(await page.locator(".yuwi-avatar img").count(), 0);
+  assert.ok((await page.locator(".yuwi-avatar img").count()) > 0);
+  assert.ok(
+    await page
+      .locator(".yuwi-header .yuwi-avatar img")
+      .evaluate((img) => img.complete && img.naturalWidth > 0),
+    "Yuwi profile image loads",
+  );
   await page
     .getByRole("button", { name: "Tutup panel AI", exact: true })
     .click();

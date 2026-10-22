@@ -58,7 +58,7 @@ Dashboard berfokus pada data Excel. Tab Biaya, angka biaya operasional dan laba 
 
 Data Bisnis langsung menampilkan tabel penjualan tanpa tab Riwayat Impor. Detail sumber dapat dibuka dari baris rekap melalui Lihat sumber; hanya sumber terkait yang ditampilkan. Import Excel tetap tersedia.
 
-Asisten bernama Yuwi. Panel memakai header, slot avatar kosong, gelembung pengguna di kanan/jawaban Yuwi di kiri, waktu pesan, indikator mengetik, dan tombol Chat baru untuk mengosongkan percakapan lokal. Foto belum dipasang. Enter mengirim, Shift+Enter membuat baris baru.
+Asisten bernama Yuwi. Panel memakai header, avatar dari gambar pengguna, gelembung pengguna di kanan/jawaban Yuwi di kiri, waktu pesan, indikator mengetik, dan tombol Chat baru untuk mengosongkan percakapan lokal. Foto profil memakai ilustrasi yang diberikan pengguna. Enter mengirim, Shift+Enter membuat baris baru.
 
 Chat Yuwi memakai dialog modal mengambang di kanan bawah pada desktop dan menyesuaikan layar/keyboard pada ponsel. Tombol Tutup atau Escape menutup dialog dan mengembalikan fokus ke tombol pembuka.
 
