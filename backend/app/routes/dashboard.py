@@ -165,7 +165,7 @@ async def delete_records(kind: str, selection: BulkDelete, token=Depends(authent
     deleted = 0
     for offset in range(0, len(ids), 100):
         try:
-            # Small URL batches; caller's token and existing RLS enforce ownership.
+            # Small URL batches; caller's token and RLS require authenticated shared access.
             rows = await database(token, "DELETE", "refraksi_" + kind,
                 params={"id": "in.(" + ",".join(ids[offset:offset + 100]) + ")", "select": "id"})
             deleted += len(rows)

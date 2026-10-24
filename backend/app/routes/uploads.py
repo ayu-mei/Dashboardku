@@ -55,7 +55,7 @@ async def process(
         sheet,
         header_row,
         columns,
-        token.user_id,
+        "refraksi-shared",
     )
     if confirm and request.url.path.endswith("/commit"):
         # Single database request: all rows commit atomically or none do. Stable IDs prevent exact file reimports.
@@ -82,10 +82,10 @@ async def process_report(
     if committing and not confirm:
         raise HTTPException(400, "Periksa preview dan konfirmasikan impor terlebih dahulu.")
     view, records = await run_in_threadpool(
-        prepare_report, await content_of(file), sheet, year, token.user_id
+        prepare_report, await content_of(file), sheet, year, "refraksi-shared"
     )
     if view["can_import"]:
-        # Stable IDs identify this owner/file/sheet/year. Probe both ends instead
+        # Stable IDs identify this shared file/sheet/year. Probe both ends instead
         # of fetching all transactions or issuing hundreds of lookup requests.
         ids = sorted({records[0]["id"], records[-1]["id"]})
         existing = await database(token, "GET", "refraksi_sales", params={
@@ -127,7 +127,7 @@ async def process_source_file(request: Request, file: UploadFile = File(...), sh
     except (ValueError, TypeError):
         raise HTTPException(400, "Pengaturan impor tidak valid.")
     filename = file.filename or 'sumber.xlsx'
-    view, payload = await run_in_threadpool(prepare_source, await content_of(file), sheet, settings, token.user_id, filename)
+    view, payload = await run_in_threadpool(prepare_source, await content_of(file), sheet, settings, "refraksi-shared", filename)
     message, ready = await check_source_overlap(token, payload)
     view['storage_ready'] = ready
     if message:

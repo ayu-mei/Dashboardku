@@ -87,7 +87,7 @@ export default function DashboardLayout({ page, onPage, onLogout, children }) {
         <div className="mt-auto rounded-xl border border-white/10 p-4 text-xs leading-relaxed text-slate-400">
           <ShieldCheck className="mb-3 text-emerald-400" size={20} />
           <strong className="block text-white">Data tersimpan online</strong>
-          Transaksi dilindungi login dan hak akses per akun.
+          Data bersama tersinkron untuk semua akun yang login.
         </div>
       </aside>
       <div className="dashboard-main min-w-0">

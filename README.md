@@ -84,3 +84,9 @@ Perintah `npm run dev`, `npm run build`, dan `npm run preview` selalu memakai ap
 Flask root (`app.py`, `templates/`, `static/`, `requirements.txt`, `tests/test_dashboard.py`) adalah aplikasi lokal lama. Requirements aktif berada di `backend/requirements.txt`. Kedua jalur tidak boleh dicampur saat menjalankan tes atau deployment.
 
 Validasi aktif: `npm run lint`, `npm run test:backend`, dan `npm run test:browser`. Backend menggunakan `.venv` di root. Audit JavaScript: `npm run audit:dependencies`; audit Python harus mencakup versi yang terpasang beserta dependency transitif, bukan hanya nama dalam requirements. Build produksi memerlukan tiga variabel `VITE_*` pada `frontend/.env` atau environment hosting. `npm run build:preview` memeriksa kompilasi tanpa validasi konfigurasi produksi.
+
+## Data bersama antar akun
+
+Jalankan migrasi `supabase/migrations/202610240001_shared_dashboard.sql` setelah migrasi sebelumnya untuk membagikan data existing dan data baru ke semua akun login. Data tidak perlu diimpor ulang. Semua akun login mempunyai akses baca/tambah/edit/hapus bersama; `user_id` tetap menyimpan pembuat. Akses anonim tetap ditolak. Dashboard memuat ulang data setiap 30 detik saat tab terlihat dan saat kembali ke tab. Filter periode/produk tetap harus sama untuk membandingkan tampilan.
+
+ID impor baru memakai ruang data bersama. Impor transaksi lama yang menggunakan ID per akun jangan diunggah ulang: perubahan ini tidak menyatukan duplikat historis atau menjamin deduplikasi file transaksi lama terhadap ID baru. Sumber master/rekap/rafaksi diperiksa terhadap data seluruh akun oleh trigger database.

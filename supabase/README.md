@@ -1,3 +1,12 @@
+> **Perubahan 24 Oktober 2026:** model terbaru adalah data bersama untuk semua akun login.
+> Jalankan `migrations/202610240001_shared_dashboard.sql` setelah migrasi sebelumnya.
+> Data existing tetap ada; `user_id` mencatat pembuat, bukan pembatas pembacaan.
+> Semua akun login dapat membaca, menambah, mengedit transaksi/biaya, dan menghapus data bersama.
+> Anonim tetap ditolak. Pastikan akun yang didaftarkan merupakan anggota tim yang diizinkan.
+> Pemeriksaan lintas akun: `tests/shared_dashboard.sql` (fixture di-rollback).
+> Test isolasi akun lama di bawah berlaku sebelum migrasi bersama.
+> Migrasi ini tidak dijalankan otomatis oleh aplikasi.
+
 # Database REFRAKSI
 
 Struktur saat ini sesuai untuk transaksi penjualan dengan harga/HPP satuan maksimal dua desimal dan biaya operasional terpisah. Pembatasan per akun memakai `user_id`, Supabase Auth, grants, serta RLS. Backend aktif membaca tabel lewat REST API dengan JWT pengguna; fungsi `refraksi_dashboard` tetap tersedia dan diuji, tetapi bukan jalur agregasi backend aktif.

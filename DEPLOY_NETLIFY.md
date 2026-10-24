@@ -126,9 +126,9 @@ Untuk inspeksi/publikasi draft via API dengan login CLI Windows yang sudah ada, 
 
 1. Pengunjung tanpa login tidak bisa membaca/mengubah data. Panggilan API tanpa token harus mendapat 401.
 2. Masuk dengan akun A, tambahkan transaksi jumlah 2, harga 500000, HPP 300000, biaya 100000. Hasil: penjualan 1000000, HPP 600000, gross 400000, gross margin 40%, net 300000, net margin 30%.
-3. Reload dan login ulang: data tetap ada. Akun B tidak dapat membaca/mengedit/menghapus data A.
+3. Reload dan login ulang: data tetap ada. Setelah migrasi `202610240001_shared_dashboard.sql`, akun B harus melihat data A dan dapat mengedit/menghapus data bersama.
 4. Uji tahun, bulan, tanggal, dan produk. Kartu, grafik, tabel, serta Excel memakai filter laporan yang sama. Reset mengembalikan tahun berjalan dan mengosongkan filter lain. Search tabel hanya mencari dalam tabel, tidak mengubah laporan.
-5. Uji edit, konfirmasi hapus, search, sorting numerik, pagination, dan upload salah format. Uji file valid melalui preview sebelum commit. Jangan impor ulang data dengan workbook berbeda yang berisi transaksi sama; deteksi duplikat hanya untuk file dan mapping identik pada akun yang sama.
+5. Uji edit, konfirmasi hapus, search, sorting numerik, pagination, dan upload salah format. Uji file valid melalui preview sebelum commit. Jangan impor ulang data dengan workbook berbeda yang berisi transaksi sama; deteksi duplikat hanya untuk file dan mapping identik pada ruang data bersama untuk impor baru.
 6. Unduh Excel: sheet Sales, Expenses, Summary sesuai filter. Angka uang diekspor sebagai teks desimal untuk menjaga ketelitian; tidak ada formula yang dijalankan dari input pengguna.
 7. Periksa desktop, tablet, dan ponsel 320px. Sidebar memakai drawer di mobile, kartu tersusun ulang, grafik mengikuti container, tabel digeser secara horizontal.
 
