@@ -1,10 +1,10 @@
 import { Banknote, TrendingUp, Receipt, Percent } from "lucide-react";
 import { rupiah, percent } from "../utils/format";
 const cards = [
-  ["Penjualan", "sales", Banknote],
-  ["Laba Kotor", "gross", TrendingUp],
-  ["Total HPP", "hpp", Receipt],
-  ["Margin Kotor", "gross_margin", Percent],
+  ["TOTAL RAFRAKSI", "sales", Banknote],
+  ["TOTAL COST", "gross", TrendingUp],
+  ["SALES VALUE", "hpp", Receipt],
+  ["MARGIN", "gross_margin", Percent],
 ];
 export default function SummaryCards({ metrics, missingHppCount }) {
   return (

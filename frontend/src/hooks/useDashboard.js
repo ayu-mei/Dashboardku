@@ -37,19 +37,6 @@ export function useDashboard(
     return () => controller.abort();
   }, [query, version, endpoint, activePage]);
   const reload = useCallback(() => setVersion((value) => value + 1), []);
-  useEffect(() => {
-    const refresh = () => {
-      if (document.visibilityState === "visible") reload();
-    };
-    window.addEventListener("focus", refresh);
-    document.addEventListener("visibilitychange", refresh);
-    const timer = window.setInterval(refresh, 30000);
-    return () => {
-      window.removeEventListener("focus", refresh);
-      document.removeEventListener("visibilitychange", refresh);
-      window.clearInterval(timer);
-    };
-  }, [reload]);
   return {
     filters,
     setFilters,
